@@ -32,15 +32,7 @@ except ImportError:
         HAS_PIL = False
 
 app = Flask(__name__)
-# Allow your website domain + localhost for testing
-CORS(app, origins=[
-    "http://localhost",
-    "http://127.0.0.1",
-    "null",
-    "https://avinashvagarnal.gt.tc",
-    "http://avinashvagarnal.gt.tc",
-    "https://avi-autoposter.onrender.com",
-])
+CORS(app)  # Open — app is self-hosted on Render
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -458,6 +450,16 @@ def find_images(query, article_url=''):
     return verified
 
 # ── ROUTES ───────────────────────────────────────────────────
+
+@app.route('/')
+def serve_index():
+    """Serve the main app directly from Render — no separate hosting needed."""
+    try:
+        with open('index.html', 'r', encoding='utf-8') as f:
+            return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except FileNotFoundError:
+        return '<h2>index.html not found — upload it to your GitHub repo.</h2>', 404
+
 @app.route('/api/rss')
 def proxy_rss():
     url = request.args.get('url','')
