@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auto-Poster Pro v13 — Elite Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&family=Inter:wght@400;500;600;700&family=Anek+Kannada:wght@400;600;800&family=Hubballi&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07080a;--bg2:#0c0e12;--bg3:#12141a;
+  --border:#1c2030;--border2:#252d3d;
+  --accent:#5865f2;--accent2:#ff3c5c;--accent3:#00e5b4;--accent4:#f59e0b;
+  --text:#eef0f8;--muted:#4a5068;--muted2:#7a7fa0;
+  --font-head: 'Montserrat', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'Fira Code', monospace;
+  --r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100vh;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font-body);}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+
+.dashboard{display:grid;grid-template-columns:295px 1fr 365px;grid-template-rows:50px 1fr;height:100vh;width:100vw;}
+.topbar{grid-column:1/-1;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:14px;}
+.logo{font-family:var(--font-head);font-size:15px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;letter-spacing:-0.3px;}
+.logo-dot{width:7px;height:7px;border-radius:50%;background:var(--accent2);box-shadow:0 0 8px var(--accent2);animation:blink 1.5s infinite;}
+.logo-ver{font-size:10px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--muted);font-family:var(--font-mono);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
+.tabs{display:flex;gap:3px;margin-left:6px;}
+.tab-btn{background:transparent;border:1px solid transparent;color:var(--muted);font-size:11.5px;font-weight:700;padding:6px 13px;border-radius:7px;cursor:pointer;transition:all .2s;font-family:var(--font-head);}
+.tab-btn:hover{background:var(--bg3);color:var(--text);border-color:var(--border);}
+.tab-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.tab-btn.active.news-tab{background:var(--accent2);border-color:var(--accent2);}
+.tab-btn.active.break-tab{background:var(--accent4);border-color:var(--accent4);color:#000;}
+.spacer{flex:1;}
+.status-pill{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted2);font-family:var(--font-mono);background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 11px;}
+.s-dot{width:5px;height:5px;border-radius:50%;background:var(--accent3);}
+
+.col{height:calc(100vh - 50px);overflow-y:auto;border-right:1px solid var(--border);padding:16px;padding-bottom:80px;}
+.col-mid{background:var(--bg);border-right:none;}
+.sec{font-family:var(--font-head);font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.sec::after{content:'';flex:1;height:1px;background:var(--border);}
+.field{margin-bottom:12px;}
+label{display:block;font-size:11px;color:var(--muted2);margin-bottom:4px;font-weight:600;letter-spacing:0.2px;}
+input,textarea,select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font-body);font-size:13px;padding:8px 11px;outline:none;transition:border-color .2s,box-shadow .2s;}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(88,101,242,.12);}
+textarea{resize:vertical;line-height:1.5;}
+.row{display:flex;gap:8px;align-items:flex-end;width:100%;}
+.row .field{flex:1;margin:0;min-width:0;}
+button{width:100%;padding:9px 13px;font-size:12px;font-weight:700;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:var(--r);cursor:pointer;transition:all .2s;font-family:var(--font-head);}
+button:hover{border-color:var(--border2);background:var(--bg2);}
+button:disabled{opacity:.4;cursor:not-allowed;}
+.btn-p{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn-p:hover:not(:disabled){background:#6c79ff;color:#fff;}
+.btn-d{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+.btn-d:hover:not(:disabled){background:#ff5c75;color:#fff;}
+.btn-w{background:var(--accent4);border-color:var(--accent4);color:#000;font-weight:900;}
+.btn-sm{padding:8px 11px;width:auto;margin:0;}
+.btn-ap{background:linear-gradient(135deg,#f59e0b,#ef4444);border-color:transparent;color:#000;font-weight:900;animation:pg 2s infinite;}
+@keyframes pg{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.4)}50%{box-shadow:0 0 16px 6px rgba(245,158,11,.12)}}
+
+.upload-row{display:flex;align-items:center;gap:10px;background:var(--bg3);padding:9px;border:1px dashed var(--border2);border-radius:var(--r);}
+.preview-img{width:38px;height:38px;border-radius:5px;object-fit:cover;background:var(--bg);border:1px solid var(--border);flex-shrink:0;}
+.preview-img.round{border-radius:50%;}
+
+.slides-grid{display:flex;flex-direction:column;gap:26px;padding:14px;}
+.slide-wrap{position:relative;max-width:510px;margin:0 auto;width:100%;}
+.slide-num{position:absolute;top:-22px;left:0;font-size:9.5px;font-family:var(--font-mono);color:var(--muted);letter-spacing:1px;}
+canvas.preview{width:100%;aspect-ratio:1;border-radius:14px;display:block;cursor:pointer;box-shadow:0 14px 44px rgba(0,0,0,.65);border:2px solid var(--border);transition:all .25s ease;}
+canvas.preview:hover{transform:translateY(-3px);border-color:var(--border2);}
+canvas.preview.selected{border-color:var(--accent);box-shadow:0 0 0 4px rgba(88,101,242,.2),0 14px 44px rgba(0,0,0,.7);}
+
+.theme-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;}
+.theme-chip{padding:7px 3px;border:2px solid var(--border);border-radius:7px;cursor:pointer;text-align:center;font-size:9.5px;font-weight:800;transition:all .2s;color:var(--muted);font-family:var(--font-head);}
+.theme-chip.active{border-color:currentColor;filter:brightness(1.3);}
+
+.panel{display:none;}
+.panel.active{display:block;}
+.gen-area{background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:14px;margin-bottom:18px;}
+.mode-badge{display:inline-flex;align-items:center;gap:7px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:10.5px;font-weight:700;color:var(--muted);margin-bottom:14px;font-family:var(--font-mono);}
+.mode-badge .mb-dot{width:6px;height:6px;border-radius:50%;}
+.rt-notice{background:rgba(0,229,180,.06);border:1px solid rgba(0,229,180,.2);border-radius:7px;padding:7px 11px;font-size:10.5px;color:var(--accent3);margin-bottom:10px;display:flex;align-items:center;gap:7px;font-family:var(--font-mono);}
+.rt-notice::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--accent3);flex-shrink:0;animation:blink 1.5s infinite;}
+.caption-area{position:relative;}
+.char-count{position:absolute;bottom:9px;right:11px;font-size:10px;color:var(--muted);font-family:var(--font-mono);}
+.slide-editor{display:none;background:rgba(88,101,242,.04);padding:14px;border:1px solid rgba(88,101,242,.25);border-radius:13px;margin-bottom:18px;}
+.news-card-item{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:13px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;margin-bottom:7px;}
+.news-card-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent2);opacity:0;transition:opacity .2s;}
+.news-card-item:hover{border-color:var(--border2);}
+.news-card-item:hover::before{opacity:1;}
+.n-headline{font-size:13px;font-weight:600;color:var(--text);line-height:1.45;margin-bottom:7px;}
+.n-meta{font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;}
+.n-src{color:var(--accent3);font-weight:700;font-family:var(--font-mono);}
+.n-badge{background:var(--accent2);color:#fff;font-size:9px;font-weight:800;border-radius:3px;padding:2px 5px;font-family:var(--font-head);}
+.n-actions{display:none;margin-top:9px;gap:6px;}
+.news-card-item:hover .n-actions{display:flex;}
+.autopilot-box{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--r);padding:13px;margin-bottom:18px;}
+hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
+.terminal{background:#030405;border:1px solid var(--border);border-radius:11px;padding:13px;height:265px;overflow-y:auto;}
+.term-hdr{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--border);font-family:var(--font-mono);display:flex;align-items:center;gap:6px;}
+.term-hdr::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent3);}
+.log-line{margin-bottom:4px;font-size:10.5px;display:flex;gap:7px;line-height:1.5;font-family:var(--font-mono);}
+.log-ts{color:var(--muted);flex-shrink:0;}
+.log-info{color:var(--text);}
+.log-ok{color:var(--accent3);}
+.log-warn{color:var(--accent4);}
+.log-err{color:var(--accent2);}
+</style>
+</head>
+<body>
+<div class="dashboard">
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="logo"><div class="logo-dot"></div>AvI Auto-Poster Pro<span class="logo-ver">v13</span></div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchMode('carousel')">⚡ AI Carousel</button>
+    <button class="tab-btn news-tab" onclick="switchMode('news')">📡 Live News</button>
+    <button class="tab-btn break-tab" onclick="switchMode('breaking')">🔴 Breaking</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="status-pill"><div class="s-dot"></div><span id="sysStatus">READY</span></div>
+</header>
+
+<!-- LEFT COL -->
+<div class="col">
+  <div class="sec">Integrations</div>
+  <div class="field">
+    <label>Meta Long-Lived Access Token</label>
+    <div class="row">
+      <div class="field"><input id="accessToken" type="password" placeholder="EAAi… long-lived token"></div>
+      <button class="btn-sm btn-p" onclick="verifyToken()">AUTH</button>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-top:3px;">Needs pages_show_list + instagram_basic + instagram_content_publish</div>
+  </div>
+  <div class="field"><label>Instagram Business Account ID</label><input id="userId" type="text" placeholder="Auto-filled after AUTH…"></div>
+  <div class="row">
+    <div class="field"><label>Cloudinary Name</label><input id="cloudName" placeholder="my-cloud"></div>
+    <div class="field"><label>Upload Preset (unsigned)</label><input id="uploadPreset" placeholder="preset"></div>
+  </div>
+  <div class="field">
+    <label>Gemini API Key</label>
+    <input id="geminiKey" type="password" placeholder="AIzaSy…">
+    <div class="rt-notice" style="margin-top:5px;">Google Search Grounding Active.</div>
+  </div>
+  <div class="rt-notice" style="margin-top:5px;margin-bottom:5px;">📸 v15: Real news photos from 8 sources — zero API keys needed.</div>
+
+  <hr>
+  <div class="sec">Brand Identity</div>
+  <div class="field">
+    <label>Author Avatar</label>
+    <div class="upload-row">
+      <img id="avatarPreview" class="preview-img round" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=">
+      <button class="btn-sm" onclick="document.getElementById('avatarUpload').click()" style="flex:1;">📎 Upload Avatar</button>
+      <input type="file" id="avatarUpload" accept="image/*" style="display:none;">
+    </div>
+  </div>
+  <div class="field"><label>Handle / Username</label><input id="handleText" placeholder="@yourhandle"></div>
+
+  <hr>
+  <div class="sec">Visual Themes</div>
+  <div class="theme-grid" id="themeGrid">
+    <div class="theme-chip active" data-theme="dark" onclick="setTheme('dark')" style="background:#0f0f14;color:#5865f2;">🌙 Dark</div>
+    <div class="theme-chip" data-theme="light" onclick="setTheme('light')" style="background:#f8fafc;color:#0284c7;">☀️ Light</div>
+    <div class="theme-chip" data-theme="cyber" onclick="setTheme('cyber')" style="background:#050505;color:#39ff14;">⚡ Cyber</div>
+    <div class="theme-chip" data-theme="neon" onclick="setTheme('neon')" style="background:#130026;color:#b026ff;">🟣 Neon</div>
+    <div class="theme-chip" data-theme="sunset" onclick="setTheme('sunset')" style="background:#2a0800;color:#ff5e00;">🌇 Sunset</div>
+    <div class="theme-chip" data-theme="elegant" onclick="setTheme('elegant')" style="background:#1c1b18;color:#d4af37;">✨ Gold</div>
+    <div class="theme-chip" data-theme="ocean" onclick="setTheme('ocean')" style="background:#001f3f;color:#39cccc;">🌊 Ocean</div>
+    <div class="theme-chip" data-theme="forest" onclick="setTheme('forest')" style="background:#0b2b1a;color:#4ade80;">🌲 Forest</div>
+    <div class="theme-chip" data-theme="synthwave" onclick="setTheme('synthwave')" style="background:#2b0042;color:#ff007f;">📻 Synth</div>
+    <div class="theme-chip" data-theme="newspaper" onclick="setTheme('newspaper')" style="background:#fafaf5;color:#c41e3a;">📰 Press</div>
+  </div>
+
+  <button onclick="saveSettings()" style="margin-top:14px;">💾 Save Config</button>
+</div>
+
+<!-- MIDDLE COL -->
+<div class="col col-mid">
+  
+  <div style="background:rgba(88,101,242,.1);border:1px solid var(--accent);padding:10px;border-radius:10px;margin-bottom:15px;font-size:11px;">
+    <strong>Backend Status:</strong> To enable robust Google Image Search & bypass CORS, ensure <code>run.bat</code> is running in the background!
+  </div>
+
+  <!-- CAROUSEL PANEL -->
+  <div id="carouselPanel" class="panel active">
+    <div class="mode-badge"><div class="mb-dot" style="background:var(--accent)"></div>AI Carousel Builder</div>
+    <div class="gen-area">
+      <div class="field"><label>Topic / Idea</label><input id="aiTopic" placeholder="e.g. 5 psychological hacks for productivity"></div>
+      <div class="row">
+        <div class="field"><label>Language</label>
+          <select id="aiLanguage"><option value="English">English</option><option value="Kannada">Kannada (ಕನ್ನಡ)</option></select>
+        </div>
+        <div class="field"><label>Slides</label>
+          <select id="slideCount"><option value="5">5</option><option value="7" selected>7</option><option value="10">10</option></select>
+        </div>
+      </div>
+      <button id="aiBtn" class="btn-p" onclick="generateAI()">⚡ Generate AI Content</button>
+    </div>
+    <div class="slides-grid" id="slidesGrid">
+      <div style="text-align:center;color:var(--muted);margin-top:60px;font-size:12px;font-family:var(--font-mono);">[ Awaiting prompt ]</div>
+    </div>
+  </div>
+
+  <!-- NEWS PANEL -->
+  <div id="newsPanel" class="panel">
+    <div class="mode-badge"><div class="mb-dot" style="background:var(--accent2)"></div>Live News Engine — Multi-Source RSS</div>
+    <div class="gen-area">
+      <div class="row">
+        <div class="field"><label>Region / Topic</label>
+          <select id="newsFeedSelect">
+            <option value="INDIA">🇮🇳 India Top News</option>
+            <option value="KARNATAKA">🟡🔴 Karnataka</option>
+            <option value="BENGALURU">🏙️ Bengaluru</option>
+            <option value="POLITICS">⚖️ Indian Politics</option>
+            <option value="BUSINESS">📈 Business</option>
+            <option value="SPORTS">🏏 Sports</option>
+            <option value="AI">🤖 AI & Tech</option>
+            <option value="GLOBAL">🌍 Global</option>
+          </select>
+        </div>
+        <div class="field"><label>Language</label>
+          <select id="newsLangSelect"><option value="English">English</option><option value="Kannada">Kannada (ಕನ್ನಡ)</option></select>
+        </div>
+        <button class="btn-sm btn-p" onclick="fetchLiveNews()" style="margin-bottom:0;">🔍 Fetch</button>
+      </div>
+      <div style="margin-top:9px;">
+        <button class="btn-p" onclick="generateTop10NewsCarousel()">🔥 Auto-Build Top 10 News Carousel</button>
+      </div>
+      <div style="margin-top:7px;font-size:10px;color:var(--muted2);font-family:var(--font-mono);background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:6px 10px;">💡 Click any generated slide to set a custom image via Upload/URL</div>
+    </div>
+    <div id="newsResults"></div>
+  </div>
+
+  <!-- BREAKING PANEL -->
+  <div id="breakingPanel" class="panel">
+    <div class="mode-badge"><div class="mb-dot" style="background:var(--accent4);animation:blink .8s infinite;"></div>Breaking News Deep-Dive</div>
+    <div class="rt-notice">Live Gemini Search Grounding Active</div>
+    <div class="gen-area">
+      <div class="field"><label>Breaking News Topic</label><input id="breakingTopic" placeholder="e.g. India Budget 2025, IPL Final…"></div>
+      <div class="row">
+        <div class="field"><label>Language</label>
+          <select id="breakingLang"><option value="English">English</option><option value="Kannada">Kannada (ಕನ್ನಡ)</option></select>
+        </div>
+        <div class="field"><label>Angle</label>
+          <select id="breakingAngle">
+            <option value="EXPLAINER">📖 Full Explainer</option>
+            <option value="TIMELINE">⏱️ Timeline</option>
+            <option value="IMPACT">💥 Impact Analysis</option>
+            <option value="REACTIONS">💬 Reactions</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-d" onclick="generateBreakingCarousel()">🔴 Generate Breaking Carousel</button>
+      <div style="margin-top:7px;font-size:10px;color:var(--muted2);font-family:var(--font-mono);background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:6px 10px;">💡 Click any generated slide to override its image via file or URL</div>
+    </div>
+    <div id="breakingPlaceholder" style="color:var(--muted);text-align:center;margin-top:40px;font-size:12px;font-family:var(--font-mono);">[ Enter topic above ]</div>
+    <div class="slides-grid" id="breakingSlidesGrid" style="display:none;"></div>
+  </div>
+
+</div>
+
+<!-- RIGHT COL -->
+<div class="col">
+  <div class="sec">Automation & Deploy</div>
+
+  <div class="autopilot-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
+      <strong style="color:var(--accent4);font-size:12px;font-family:var(--font-head);">🤖 2-Hour Autopilot</strong>
+      <div id="autoStatus" style="font-size:10px;color:var(--muted);font-weight:700;font-family:var(--font-mono);">OFF</div>
+    </div>
+    <p style="font-size:11px;color:var(--muted2);margin-bottom:9px;line-height:1.5;">Auto-fetches news, builds carousel & posts every 2 hours.</p>
+    <button id="autopilotBtn" onclick="toggleAutopilot()" style="border-color:var(--accent4);color:var(--accent4);">▶ Start Autopilot</button>
+  </div>
+
+  <div class="slide-editor" id="slideEditor">
+    <div style="font-family:var(--font-head);font-size:12px;font-weight:800;color:var(--accent);margin-bottom:11px;" id="editorTitle">Edit Slide</div>
+    <div class="field"><label>Title</label><input id="editTitle" oninput="applyEdit('title',this.value)"></div>
+    <div class="field"><label>Body</label><textarea id="editBody" rows="3" oninput="applyEdit('body',this.value)"></textarea></div>
+    <div class="field"><label>Layout</label>
+      <select id="editLayout" onchange="applyEdit('layout',this.value);document.getElementById('chartEditorPanel').style.display=this.value==='chart-bar'?'block':'none'">
+        <option value="cover">Cover</option><option value="split">Split</option>
+        <option value="text-focus">Glass</option><option value="magazine">Magazine</option>
+        <option value="minimal">Minimal</option><option value="tweet">Quote Card</option>
+        <option value="stats">Stats</option><option value="timeline">Timeline</option>
+        <option value="news-card">News Card</option><option value="dateline">Dateline</option>
+        <option value="impact">Impact</option><option value="chart-bar">Bar Chart</option>
+        <option value="cta">CTA</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Image Search Term</label>
+      <div class="row">
+        <div class="field" style="margin:0;"><input id="editImgSource"></div>
+        <button class="btn-sm" onclick="forceRefreshImage()">↻</button>
+      </div>
+    </div>
+    <!-- CHART DATA EDITOR -->
+    <div id="chartEditorPanel" style="display:none;margin-top:8px;">
+      <label style="margin-bottom:6px;display:block;">📊 Chart Data (label:value per line)</label>
+      <textarea id="editChartData" rows="5" style="font-family:var(--font-mono);font-size:11px;" placeholder="BJP:140&#10;Congress:99&#10;AAP:22&#10;Others:41" oninput="applyChartEdit(this.value)"></textarea>
+    </div>
+    <!-- IMAGE OVERRIDE -->
+    <div id="imgOverridePanel" style="display:none;margin-top:10px;">
+      <div class="sec" style="margin-bottom:8px;">Custom Image Override</div>
+      <!-- URL input -->
+      <div class="field" style="margin-bottom:6px;">
+        <label>📎 Paste Image URL</label>
+        <div class="row">
+          <div class="field" style="margin:0;"><input id="overrideUrlInput" placeholder="https://example.com/image.jpg" oninput="previewOverrideUrl()"></div>
+          <button class="btn-sm btn-p" onclick="applyUrlOverride()">Use</button>
+        </div>
+      </div>
+      <!-- File upload -->
+      <div class="upload-row" style="margin-bottom:6px;">
+        <img id="overridePreview" class="preview-img" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" style="width:44px;height:44px;border-radius:6px;">
+        <div style="flex:1;">
+          <button class="btn-sm" onclick="document.getElementById('overrideFileInput').click()" style="width:100%;margin-bottom:4px;">📁 Upload Image File</button>
+          <div style="font-size:9.5px;color:var(--muted);font-family:var(--font-mono);">JPG, PNG, WebP supported</div>
+        </div>
+        <input type="file" id="overrideFileInput" accept="image/*" style="display:none;">
+      </div>
+      <button class="btn-sm" style="background:rgba(255,60,92,.1);border-color:var(--accent2);color:var(--accent2);width:100%;" onclick="clearImageOverride()">✕ Clear Override</button>
+    </div>
+  </div>
+
+  <div class="field caption-area">
+    <label>Instagram Caption</label>
+    <textarea id="caption" rows="5" oninput="updateCharCount()" placeholder="Caption with hashtags…"></textarea>
+    <span class="char-count" id="charCount">0</span>
+  </div>
+
+  <button class="btn-d" id="runBtn" onclick="handleRun()">🚀 Deploy to Instagram</button>
+  <button style="margin-top:7px;background:#1877f2;border-color:#1877f2;color:#fff;font-weight:900;" onclick="handleFBRun()">📘 Deploy to Facebook Page</button>
+  <button style="margin-top:7px;background:var(--accent3);border-color:var(--accent3);color:#000;font-weight:900;" onclick="downloadAllSlides()">⬇ Download All Slides (ZIP)</button>
+
+  <hr>
+  <div class="terminal" id="terminalLog">
+    <div class="term-hdr">SYSTEM LOGS</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   STATE & CONSTANTS
+═══════════════════════════════════════════════════════════ */
+const CANVAS_W = 1080, CANVAS_H = 1080;
+let slides = [], currentMode = 'carousel', selectedSlide = null;
+// imageCache keyed by slide.cacheKey (UUID) — prevents cross-carousel image swapping
+let imageCache = {}, activeTheme = 'dark', currentLang = 'English';
+let latestNews = [], avatarImg = null, autopilotTimer = null;
+let slideImageOverrides = {};
+function makeUUID(){ return 'ck-'+Math.random().toString(36).slice(2)+'-'+Date.now().toString(36); }
+function assignCacheKeys(arr){ arr.forEach(s=>{ if(!s.cacheKey) s.cacheKey=makeUUID(); }); }
+
+const THEMES = {
+  dark:      {bg:'#0f0f14',bg2:'#1a1a24',text:'#ffffff',sub:'#94a3b8',accent:'#5865f2',panel:'#1e1e2e'},
+  light:     {bg:'#f8fafc',bg2:'#ffffff',text:'#0f172a',sub:'#475569',accent:'#0284c7',panel:'#ffffff'},
+  cyber:     {bg:'#050505',bg2:'#0a0a0a',text:'#00ffcc',sub:'#ff0055',accent:'#39ff14',panel:'#0a0a0a'},
+  neon:      {bg:'#130026',bg2:'#1d003b',text:'#f1e5ff',sub:'#c084fc',accent:'#b026ff',panel:'#1d003b'},
+  sunset:    {bg:'#2a0800',bg2:'#3d0c00',text:'#fff0e6',sub:'#ff9d66',accent:'#ff5e00',panel:'#3d0c00'},
+  elegant:   {bg:'#1c1b18',bg2:'#262420',text:'#fcfaf5',sub:'#a89f91',accent:'#d4af37',panel:'#262420'},
+  ocean:     {bg:'#001f3f',bg2:'#002a5c',text:'#ffffff',sub:'#7fdbff',accent:'#39cccc',panel:'#001f3f'},
+  forest:    {bg:'#0b2b1a',bg2:'#113d25',text:'#f0fdf4',sub:'#86efac',accent:'#4ade80',panel:'#113d25'},
+  synthwave: {bg:'#2b0042',bg2:'#1b002a',text:'#ffffff',sub:'#ff77ff',accent:'#ff007f',panel:'#1b002a'},
+  newspaper: {bg:'#fafaf5',bg2:'#f0ece0',text:'#1a1209',sub:'#5a4a3c',accent:'#c41e3a',panel:'#fff'}
+};
+
+const NEWS_SOURCES = {
+  INDIA:     ['https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms','https://www.thehindu.com/news/national/feeder/default.rss'],
+  KARNATAKA: ['https://news.google.com/rss/search?q=Karnataka+news&ceid=IN:en&hl=en-IN&gl=IN'],
+  BENGALURU: ['https://news.google.com/rss/search?q=Bengaluru+news+today&ceid=IN:en&hl=en-IN&gl=IN'],
+  POLITICS:  ['https://timesofindia.indiatimes.com/rssfeeds/1221656.cms'],
+  BUSINESS:  ['https://economictimes.indiatimes.com/rssfeedstopstories.cms'],
+  SPORTS:    ['https://timesofindia.indiatimes.com/rssfeeds/4719148.cms'],
+  AI:        ['https://feeds.feedburner.com/TechCrunch'],
+  GLOBAL:    ['https://feeds.bbci.co.uk/news/world/rss.xml']
+};
+
+/* ═══════════════════════════════════════════════════════════
+   LOGGING & UTILS
+═══════════════════════════════════════════════════════════ */
+function log(msg,type='info'){
+  const el=document.getElementById('terminalLog');
+  const ts=new Date().toLocaleTimeString('en-US',{hour12:false});
+  const d=document.createElement('div'); d.className=`log-line log-${type}`;
+  d.innerHTML=`<span class="log-ts">[${ts}]</span><span>${msg}</span>`;
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
+function setStatus(t){document.getElementById('sysStatus').textContent=t;}
+function switchMode(m){
+  currentMode=m;
+  ['carousel','news','breaking'].forEach(x=>document.getElementById(x+'Panel').classList.toggle('active',x===m));
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['carousel','news','breaking'][i]===m));
+}
+function setTheme(k){ activeTheme=k; document.querySelectorAll('.theme-chip').forEach(c=>c.classList.toggle('active',c.dataset.theme===k)); liveUpdate(); }
+function updateCharCount(){ document.getElementById('charCount').textContent=document.getElementById('caption').value.length; }
+
+function saveSettings(){
+  ['userId','accessToken','cloudName','uploadPreset','geminiKey','handleText'].forEach(k=>{
+    const el=document.getElementById(k); if(el) localStorage.setItem('app_'+k,el.value);
+  });
+  localStorage.setItem('app_theme',activeTheme);
+  log('✅ Config saved.','ok');
+}
+function loadSettings(){
+  ['userId','accessToken','cloudName','uploadPreset','geminiKey','handleText'].forEach(k=>{
+    const v=localStorage.getItem('app_'+k); const el=document.getElementById(k); if(v&&el) el.value=v;
+  });
+  const t=localStorage.getItem('app_theme'); if(t) setTheme(t);
+  const ab=localStorage.getItem('app_avatar'); if(ab) loadB64Img(ab);
+  log('✅ System v15 — Real photos from 8 sources. Zero API keys.','ok');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AVATAR SYSTEM
+═══════════════════════════════════════════════════════════ */
+function loadB64Img(b64){
+  const img=new Image();
+  img.onload=()=>{ avatarImg=img; document.getElementById('avatarPreview').src=b64; liveUpdate(); };
+  img.src=b64;
+}
+document.getElementById('avatarUpload').addEventListener('change',e=>{
+  if(!e.target.files[0]) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const cvs=document.createElement('canvas'); let w=img.width,h=img.height;
+      if(w>400||h>400){if(w>h){h=h/w*400;w=400;}else{w=w/h*400;h=400;}}
+      cvs.width=w; cvs.height=h; cvs.getContext('2d').drawImage(img,0,0,w,h);
+      const b64=cvs.toDataURL('image/jpeg',.85);
+      localStorage.setItem('app_avatar',b64); loadB64Img(b64); log('✅ Avatar updated.','ok');
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(e.target.files[0]);
+  e.target.value = ''; 
+});
+
+/* ═══════════════════════════════════════════════════════════
+   RSS / NEWS FETCH
+═══════════════════════════════════════════════════════════ */
+async function fetchRSSWithProxy(rssUrl) {
+  try {
+    const r = await fetch(`/api/rss?url=${encodeURIComponent(rssUrl)}`);
+    if(r.ok) {
+        const txt = await r.text();
+        const xml = new DOMParser().parseFromString(txt,'text/xml');
+        const items = xml.querySelectorAll('item');
+        if (items.length > 0) return parseXMLItems(items);
+    }
+  } catch(e) { log(`Local RSS proxy failed (is run.bat running?): ${e.message}`,'warn'); }
+
+  try {
+    const r = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=15`);
+    const d = await r.json();
+    if (d.status==='ok' && d.items?.length > 0) {
+      return d.items.map(i=>({
+        title:i.title, description:i.description||i.content||'',
+        pubDate:i.pubDate, link:i.link, source:d.feed?.title||'News',
+        extractedImage:i.enclosure?.link||i.thumbnail||extractImg(i.description||'')
+      }));
+    }
+  } catch(e) {}
+  return [];
+}
+
+function parseXMLItems(items) {
+  return Array.from(items).slice(0,15).map(item=>{
+    const g = s => item.querySelector(s)?.textContent?.replace(/<!\[CDATA\[|\]\]>/g,'').trim()||'';
+    const title=g('title'), description=g('description'), pubDate=g('pubDate')||new Date().toISOString();
+    const link=g('link')||g('guid');
+    let img=extractImg(description);
+    return {title,description,pubDate,link,source:item.querySelector('source')?.textContent||'Live',extractedImage:img};
+  }).filter(i=>i.title);
+}
+function extractImg(html){ const m=html.match(/<img[^>]+src=["']([^"']+)["']/i); return m?m[1]:null; }
+
+/* ═══════════════════════════════════════════════════════════
+   REAL IMAGE FETCHING — 8 SOURCES, ZERO API KEYS, NO AI
+═══════════════════════════════════════════════════════════ */
+function cleanSearchQuery(q) {
+  return q.replace(/[^\w\s\-]/g,'').trim().slice(0, 80);
+}
+
+function buildImageQuery(slide){
+  const base = cleanSearchQuery(slide.imageQuery || slide.title || '');
+  const cat  = (slide.category||'').replace(/BREAKING|NEWS/gi,'').trim();
+  return (base + (cat ? ' '+cat : '')).trim().slice(0,80);
+}
+
+async function fetchSmartImage(slide, fallbackNewsUrl=null){
+  const cacheKey = slide.cacheKey;
+  if(!cacheKey) return null;
+  if(imageCache[cacheKey]) return imageCache[cacheKey];
+
+  const richQ = buildImageQuery(slide);
+  if(!richQ) return null;
+
+  // Try RSS article image first (direct embed — best match)
+  if(fallbackNewsUrl){
+    try{
+      const proxyUrl = `/api/proxy_image?url=${encodeURIComponent(fallbackNewsUrl)}`;
+      const img = await loadImg(proxyUrl, cacheKey, 8000);
+      log(`✅ [S${slide.id}] RSS article photo loaded.`,'ok');
+      return img;
+    }catch(e){
+      log(`[S${slide.id}] RSS photo failed → backend search…`,'warn');
+    }
+  }
+
+  // Backend search — 8 real sources, zero API keys
+  log(`[S${slide.id}] 🔍 Searching: "${richQ}"`);
+  try {
+    // Pass article_url if slide has one (for direct article scraping)
+    const articleParam = slide.articleUrl ? `&article_url=${encodeURIComponent(slide.articleUrl)}` : '';
+    const res = await fetch(`/api/search_image?q=${encodeURIComponent(richQ)}${articleParam}`);
+    const data = await res.json();
+    const imgList = data.images || [];
+    log(`[S${slide.id}] Backend: ${imgList.length} real images`);
+
+    for(const imgUrl of imgList.slice(0,12)){
+      try{
+        const proxyUrl = `/api/proxy_image?url=${encodeURIComponent(imgUrl)}`;
+        const img = await loadImg(proxyUrl, cacheKey, 10000);
+        log(`✅ [S${slide.id}] Real image loaded.`,'ok');
+        return img;
+      }catch(e){}
+    }
+    log(`[S${slide.id}] ❌ ${imgList.length} URLs found but all failed proxy. Slide shows gradient.`,'err');
+  }catch(e){
+    log(`[S${slide.id}] ❌ Backend unreachable — is run.bat running?`,'err');
+  }
+  return null;
+}
+
+async function loadImgViaBlob(url, cacheKey, ms=60000){
+  const controller = new AbortController();
+  const timer = setTimeout(()=>controller.abort(), ms);
+  try{
+    const resp = await fetch(url, {signal: controller.signal, headers: {'Accept':'image/*'}});
+    clearTimeout(timer);
+    if(!resp.ok) throw new Error();
+    const blob = await resp.blob();
+    return await loadImg(URL.createObjectURL(blob), cacheKey, 15000);
+  }catch(e){ return await loadImg(url, cacheKey, ms); }
+}
+
+function loadImg(url, cacheKey, ms=14000){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    img.crossOrigin = 'Anonymous'; 
+    const t=setTimeout(()=>{ img.src=''; rej(new Error('timeout')); },ms);
+    img.onload=()=>{ clearTimeout(t); if(cacheKey!=null) imageCache[cacheKey]=img; res(img); };
+    img.onerror=()=>{ clearTimeout(t); rej(new Error('Load error')); };
+    img.src=url;
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GEMINI API (ROBUST JSON EXTRACTION TO PREVENT CRASHES)
+═══════════════════════════════════════════════════════════ */
+async function fetchFromGemini(prompt,useGrounding=true){
+  const key=document.getElementById('geminiKey').value.trim();
+  if(!key) throw new Error('Missing Gemini API Key.');
+  
+  const body={
+    contents:[{parts:[{text:prompt}]}],
+    generationConfig:{ temperature:0.2, maxOutputTokens:8192 }
+  };
+  if(useGrounding) body.tools=[{google_search:{}}];
+
+  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data=await r.json();
+  if(data.error) throw new Error(data.error.message);
+  
+  let txt=data.candidates[0].content.parts[0].text;
+  
+  // Clean markdown to guarantee JSON parsing works
+  txt = txt.replace(/```json/gi, '').replace(/```/g, '').trim();
+  const start = txt.indexOf('{');
+  const end = txt.lastIndexOf('}');
+  if (start !== -1 && end !== -1) {
+      txt = txt.substring(start, end + 1);
+  }
+  
+  try{ 
+      return JSON.parse(txt); 
+  }
+  catch(er){ 
+      console.error("FAILED JSON:", txt);
+      throw new Error('Gemini JSON parsing failed. Please try again.'); 
+  }
+}
+
+function getLanguageInstruction(lang) {
+    if(lang === 'Kannada') {
+        return 'CRITICAL KANNADA INSTRUCTION: Generate highly attractive, natural, modern social media Kannada (ಕನ್ನಡ). Use colloquial phrasing and high-energy tone. Do NOT use stiff, formal, or robotic textbook translations. Keep English numbers/terms if formatting requires it.';
+    }
+    return 'CRITICAL ENGLISH INSTRUCTION: Use high-energy, suspenseful, punchy, and highly engaging viral social media English.';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ELITE PROMPT — STANDARD AI CAROUSEL
+═══════════════════════════════════════════════════════════ */
+async function generateAI(){
+  const topic=document.getElementById('aiTopic').value.trim();
+  const lang=document.getElementById('aiLanguage').value; currentLang=lang;
+  const count=parseInt(document.getElementById('slideCount').value);
+  if(!topic) return log('ERR: Topic required.','err');
+  const btn=document.getElementById('aiBtn'); btn.textContent='⏳ Thinking…'; btn.disabled=true;
+  setStatus('GENERATING'); log(`⚡ Carousel: "${topic}" [${lang}]`);
+
+  const prompt=`You are an ELITE Instagram Carousel Creator with REAL-TIME WEB SEARCH.
+TASK: Search the web for verified info about: "${topic}" and create a viral carousel.
+LANGUAGE: ${lang}
+${getLanguageInstruction(lang)}
+
+OUTPUT FORMAT (RAW VALID JSON ONLY. NO MARKDOWN):
+{
+  "caption": "Instagram caption with emojis and relevant hashtags",
+  "slides": [
+    {
+      "id": 1,
+      "layout": "cover",
+      "title": "...",
+      "body": "...",
+      "imageQuery": "2-5 word Google image search query describing the EXACT scene, person, or event on this slide. Be specific: use proper nouns + context. Example: 'Virat Kohli batting IPL 2025', 'Bengaluru Metro inauguration', 'Union Budget 2025 Parliament'.",
+      "category": "...",
+      "chartData": [{"label": "Data", "value": 50}]
+    }
+  ]
+}
+
+MANDATORY LAYOUT RULES:
+- Slide 1: layout="cover"
+- Slide 2: layout="chart-bar" if comparative data exists, otherwise layout="stats". body: max 20 words.
+- Slide ${Math.max(3,count-2)}: layout="timeline". body: EXACTLY 4-5 bullet points, each 3-4 words only (use \\n between them).
+- Slide ${count}: layout="cta"
+- Remaining slides: mix of [split, text-focus, minimal, dateline, impact, news-card]
+- EXACTLY ${count} slides. Titles max 8 words. Bodies max 30 words.
+- layout="chart-bar": include "chartData" array with 3-5 items [{label,value}]. Values must be numbers.
+- imageQuery: Write the EXACT FULL NAME of the specific person on this slide + their specific action + year. E.g. "Virat Kohli batting IPL 2026", "Narendra Modi inaugurates Ram Mandir Ayodhya 2025". NEVER write generic words like "politician" or "leader". Each slide must have a DIFFERENT query.`;
+
+  try{
+    const parsed=await fetchFromGemini(prompt,true);
+    slides=parsed.slides; currentLang=lang;
+    assignCacheKeys(slides);
+    imageCache={}; slideImageOverrides={};
+    document.getElementById('caption').value=parsed.caption||''; updateCharCount();
+    log('✅ Content ready. Fetching Google images…','ok');
+    buildGrid();
+    for(let i=0;i<slides.length;i++){
+      const s=slides[i];
+      if(s.imageQuery&&s.layout!=='cta'){
+        btn.textContent=`🔍 Image ${i+1}/${slides.length}…`;
+        await fetchSmartImage(s); buildGrid();
+      }
+    }
+    log('✨ Carousel complete!','ok'); switchMode('carousel');
+  }catch(err){ log(`Generation failed: ${err.message}`,'err'); }
+  btn.textContent='⚡ Generate AI Content'; btn.disabled=false; setStatus('READY');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LIVE NEWS
+═══════════════════════════════════════════════════════════ */
+async function fetchLiveNews(){
+  const feed=document.getElementById('newsFeedSelect').value;
+  setStatus('FETCHING'); log(`📡 Fetching ${feed} news…`);
+  let articles=[];
+  for(const url of NEWS_SOURCES[feed]||[]){
+    articles=await fetchRSSWithProxy(url);
+    if(articles.length>0){ log(`✅ Retrieved ${articles.length} articles.`,'ok'); break; }
+  }
+  if(!articles.length){ log('❌ No news found. Check backend or network.','err'); setStatus('ERROR'); return; }
+  latestNews=articles; renderNewsResults(latestNews); setStatus('READY');
+}
+
+function renderNewsResults(articles){
+  const el=document.getElementById('newsResults'); el.innerHTML='';
+  articles.forEach((a,i)=>{
+    if(!a.title) return;
+    const clean=a.title.split(' - ')[0]||a.title;
+    const card=document.createElement('div'); card.className='news-card-item';
+    card.innerHTML=`<div class="n-headline">${clean}</div>
+      <div class="n-meta"><span class="n-src">${a.source||'LIVE'}</span></div>
+      <div class="n-actions">
+        <button class="btn-p btn-sm" onclick="deepDiveNews(${i})">🧠 Deep Dive</button>
+      </div>`;
+    el.appendChild(card);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOP 10 NEWS / DEEP DIVE / BREAKING
+═══════════════════════════════════════════════════════════ */
+async function generateTop10NewsCarousel(){
+  if(!latestNews.length) await fetchLiveNews(); if(!latestNews.length) return;
+  const lang=document.getElementById('newsLangSelect').value; currentLang=lang;
+  log('🔥 Building Top 10 News Carousel…'); setStatus('BUILDING');
+
+  const top8=latestNews.slice(0,8);
+  const prompt=`You are an ELITE Global News Editor. Transform these 8 headlines into a 10-slide Instagram carousel.
+LANGUAGE: ${lang}
+${getLanguageInstruction(lang)}
+
+HEADLINES (each one must become exactly ONE slide):
+${top8.map((n,i)=>`${i+1}. ${n.title.split(' - ')[0]}`).join('\n')}
+
+OUTPUT FORMAT (RAW VALID JSON ONLY. NO MARKDOWN):
+{"caption":"...","slides":[{"id":1,"layout":"magazine","title":"...","body":"...","imageQuery":"...","category":"...","ticker":"...","location":"...","source":"..."}]}
+
+STRICT RULES — READ CAREFULLY:
+- Slide 1: layout="magazine". title: MAX 6 WORDS, punchy hook covering today's biggest stories. body: EXACTLY 20-25 words summarising all 8 stories. category: creative (e.g. "TOP STORIES", "DAILY BRIEFING"). ticker: today's date (e.g. "18 MAY 2026"). imageQuery: best story's main person + action + year.
+- Slides 2-9: layout="news-card". ONE slide = ONE headline ONLY. NEVER combine two stories in one slide.
+  - Slide 2 = Headline 1, Slide 3 = Headline 2, ..., Slide 9 = Headline 8
+  - title: headline shortened to max 8 words
+  - body: 2-sentence context, max 25 words total
+  - category: CREATIVE category matching this story's type: "CRIME", "HUMAN INTEREST", "POLITICS", "ELECTION", "ECONOMY", "SPORTS", "CRICKET", "TECH", "HEALTH", "ENVIRONMENT", "SOCIAL", "VERDICT", "WAR", "PARLIAMENT", "TERROR", "BREAKING" — pick the BEST match
+  - ticker: district or state or country relevant to THIS story (e.g. "KERALA", "NEW DELHI", "KARNATAKA", "BENGALURU", "INDIA", "GLOBAL")
+  - location: same as ticker
+  - source: news source name
+  - imageQuery: EXACT FULL NAME of person in story + specific action + year (e.g. "VD Satheesan sworn in Kerala CM 2026")
+- Slide 10: layout="cta".
+- EXACTLY 10 slides total. No slide combines multiple stories.`;
+
+  try{
+    const parsed=await fetchFromGemini(prompt,false);
+    slides=parsed.slides;
+    assignCacheKeys(slides);
+    imageCache={}; slideImageOverrides={};
+    document.getElementById('caption').value=parsed.caption||''; updateCharCount();
+    buildGrid();
+    for(let i=0;i<slides.length;i++){
+      if(slides[i].layout!=='cta'&&slides[i].imageQuery){
+        if(i>=1&&i<=8){ slides[i].articleUrl=top8[i-1]?.link||''; }
+        const fallbackImg=(i>=1&&i<=8)?top8[i-1]?.extractedImage:null;
+        await fetchSmartImage(slides[i],fallbackImg);
+        buildGrid();
+      }
+    }
+    log('✨ Top 10 News Complete!','ok'); switchMode('carousel');
+  }catch(err){ log(`Failed: ${err.message}`,'err'); }
+  setStatus('READY');
+}
+
+async function deepDiveNews(idx){
+  const article=latestNews[idx]; const lang=document.getElementById('newsLangSelect').value; currentLang=lang;
+  log(`🧠 Deep Dive: "${article.title}"…`); setStatus('DEEP DIVE');
+  const prompt=`You are an ELITE Investigative News Editor.
+STORY: ${article.title}
+SUMMARY: ${(article.description||'').replace(/<[^>]+>/g,'').substring(0,400)}
+LANGUAGE: ${lang}
+${getLanguageInstruction(lang)}
+
+OUTPUT FORMAT (RAW VALID JSON ONLY. NO MARKDOWN):
+{"caption":"...","slides":[{"id":1,"layout":"news-card","title":"...","body":"...","imageQuery":"3-5 word specific Google image search for THAT slide — person + action + context","category":"BREAKING","chartData":[{"label":"Data","value":10}]}]}
+
+RULES:
+- EXACTLY 10 slides.
+- Slide 1: layout="cover".
+- Slide 3: layout="chart-bar" (MANDATORY — use real numbers from the story). Include chartData with 3-5 items.
+- Slide 5: layout="stats". body: EXACTLY 5 bullet points, each 3-4 words only, use \\n between them.
+- Slide 7: layout="timeline". body: EXACTLY 5 items, 3-4 words each, use \\n between them.
+- Slide 10: layout="cta". Rest: layout="news-card".
+- imageQuery: EXACT FULL NAME of person on this slide + their specific action + location + year. E.g. "VD Satheesan taking oath Chief Minister Kerala 2026". WRONG: "Kerala CM", "new leader". Each slide different query targeting THAT slide's person/scene.`;
+
+  try{
+    const parsed=await fetchFromGemini(prompt,true);
+    slides=parsed.slides;
+    assignCacheKeys(slides);
+    imageCache={}; slideImageOverrides={};
+    document.getElementById('caption').value=parsed.caption||''; updateCharCount(); buildGrid();
+    for(let i=0;i<slides.length;i++){
+      if(slides[i].layout!=='cta'&&slides[i].imageQuery){
+        slides[i].articleUrl = article.link||'';
+        await fetchSmartImage(slides[i], i===0?article.extractedImage:null);
+        buildGrid();
+      }
+    }
+    log('✨ Deep Dive complete!','ok'); switchMode('carousel');
+  }catch(err){ log(`Deep Dive failed: ${err.message}`,'err'); }
+  setStatus('READY');
+}
+
+async function generateBreakingCarousel(){
+  const topic=document.getElementById('breakingTopic').value.trim();
+  const lang=document.getElementById('breakingLang').value; currentLang=lang;
+  const angle=document.getElementById('breakingAngle').value;
+  if(!topic) return log('ERR: Enter a breaking topic.','err');
+  setStatus('BREAKING'); log(`🔴 Breaking: "${topic}"…`);
+
+  document.getElementById('breakingPlaceholder').style.display='none';
+  const grid=document.getElementById('breakingSlidesGrid'); grid.style.display='flex';
+  grid.innerHTML='<div style="color:var(--muted);text-align:center;padding:40px;">[ Generating… ]</div>';
+
+  const prompt=`You are an ELITE Breaking News Journalist. Search the web for the LATEST verified facts about: "${topic}"
+LANGUAGE: ${lang}
+${getLanguageInstruction(lang)}
+ANGLE: ${angle}
+
+OUTPUT FORMAT (RAW VALID JSON ONLY. NO MARKDOWN):
+{"caption":"...","slides":[{"id":1,"layout":"news-card","title":"...","body":"...","imageQuery":"EXACT Google News search phrase for this slide","category":"BREAKING","chartData":[{"label":"Item","value":10}]}]}
+
+MANDATORY SLIDE STRUCTURE — EXACTLY 10 SLIDES:
+- Slide 1: layout="cover". Explosive hook title. body: 2-sentence scene-setter.
+- Slides 2, 3: layout="news-card". Key facts.
+- Slide 4: layout="chart-bar". MANDATORY. Find real numbers (votes, funds, scores, casualties, percentages). chartData: 3-5 items with real numbers. title="By The Numbers".
+- Slide 5: layout="stats". MANDATORY. body: EXACTLY 5 bullet facts, each 3-4 words only, separated by \\n. Do NOT write sentences. E.g. "₹500 crore allocated\\n3 districts affected\\n12 MLAs arrested".
+- Slide 6: layout="news-card". Deeper context.
+- Slide 7: layout="timeline". MANDATORY. body: EXACTLY 5 chronological events, each 3-4 words only, separated by \\n. E.g. "Jan 2024: Protests begin\\nMar 2024: Government responds".
+- Slide 8: layout="impact". What does this mean for people?
+- Slide 9: layout="minimal". Key takeaway quote or verdict.
+- Slide 10: layout="cta".
+
+CRITICAL imageQuery RULES — THIS IS USED TO SEARCH GOOGLE NEWS FOR THE PHOTO:
+- Write the EXACT FULL NAME of the specific person on this slide (never a nickname)
+- Add the specific action/event: "sworn in", "press conference", "arrested", "inaugurates"
+- Add location if relevant: "Kerala", "Delhi", "Parliament"
+- Add year: 2025 or 2026
+- WRONG: "Kerala CM", "new chief minister", "political leader" — these get wrong person
+- RIGHT: "VD Satheesan sworn in Kerala Chief Minister 2026"
+- RIGHT: "Narendra Modi inaugurates new parliament building Delhi 2025"
+- Each slide must have a DIFFERENT imageQuery targeting THAT slide's specific person/event`;
+
+  try{
+    const parsed=await fetchFromGemini(prompt,true);
+    slides=parsed.slides;
+    assignCacheKeys(slides);
+    imageCache={}; slideImageOverrides={};
+    document.getElementById('caption').value=parsed.caption||''; updateCharCount();
+    buildGrid(grid);
+    for(let i=0;i<slides.length;i++){
+      if(slides[i].layout!=='cta'&&slides[i].imageQuery){
+        await fetchSmartImage(slides[i]); buildGrid(grid);
+      }
+    }
+    log('🔴 Breaking Carousel complete!','ok');
+  }catch(err){
+    log(`Breaking failed: ${err.message}`,'err');
+    grid.innerHTML=`<div style="color:red;padding:20px;">Error: ${err.message}</div>`;
+  }
+  setStatus('READY');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CUSTOM IMAGE OVERRIDE MANAGER
+═══════════════════════════════════════════════════════════ */
+async function applyUrlOverride(){
+  if(selectedSlide===null) return;
+  let url=document.getElementById('overrideUrlInput').value.trim();
+  if(!url){ log('ERR: Paste a valid image URL.','err'); return; }
+  const s=slides[selectedSlide]; log(`🖼️ Loading image from URL via proxy…`);
+  try{
+    const proxyUrl = `/api/proxy_image?url=${encodeURIComponent(url)}`;
+    const img=await loadImg(proxyUrl, s.cacheKey, 15000);
+    slideImageOverrides[s.cacheKey]=img;
+    document.getElementById('overridePreview').src=url;
+    buildGrid(); log(`✅ Custom URL image applied to slide ${selectedSlide+1}.`,'ok');
+  }catch(e){ log(`❌ URL load failed. (Check backend): ${e.message}`,'err'); }
+}
+
+let _urlPreviewTimer=null;
+function previewOverrideUrl(){
+  clearTimeout(_urlPreviewTimer);
+  const url=document.getElementById('overrideUrlInput').value.trim(); if(!url) return;
+  _urlPreviewTimer=setTimeout(()=>{
+    const el=document.getElementById('overridePreview');
+    const testImg=new Image(); testImg.crossOrigin='Anonymous';
+    testImg.onload=()=>el.src=url; testImg.onerror=()=>el.src='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+    testImg.src=`/api/proxy_image?url=${encodeURIComponent(url)}`;
+  },700);
+}
+
+function clearImageOverride(){
+  if(selectedSlide===null) return; const s=slides[selectedSlide];
+  delete slideImageOverrides[s.cacheKey]; delete imageCache[s.cacheKey];
+  document.getElementById('overridePreview').src='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+  document.getElementById('overrideUrlInput').value='';
+  buildGrid(); log(`🗑️ Image override cleared.`,'warn');
+}
+
+document.getElementById('overrideFileInput').addEventListener('change',async e=>{
+  if(!e.target.files[0]||selectedSlide===null) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const s=slides[selectedSlide];
+      slideImageOverrides[s.cacheKey]=img; imageCache[s.cacheKey]=img;
+      document.getElementById('overridePreview').src=ev.target.result;
+      buildGrid(); log(`✅ Custom file image applied to slide ${selectedSlide+1}.`,'ok');
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(e.target.files[0]); e.target.value='';
+});
+
+function _oldSelectSlide_removed(i){ /* replaced by new selectSlide with chart editor */ }
+
+function applyEdit(field,val){ if(selectedSlide===null) return; slides[selectedSlide][field]=val; buildGrid(); }
+async function forceRefreshImage(){
+  if(selectedSlide===null) return;
+  const s=slides[selectedSlide]; s.imageQuery=document.getElementById('editImgSource').value;
+  delete imageCache[s.cacheKey];
+  await fetchSmartImage(s); buildGrid();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CANVAS RENDER ENGINE
+═══════════════════════════════════════════════════════════ */
+function buildGrid(gridEl){
+  const grid = gridEl || (currentMode==='breaking'?document.getElementById('breakingSlidesGrid'):document.getElementById('slidesGrid'));
+  grid.innerHTML=''; if(!slides.length) return;
+  slides.forEach((slide,i)=>{
+    const wrap=document.createElement('div'); wrap.className='slide-wrap';
+    const num=document.createElement('div'); num.className='slide-num'; num.textContent=`SLIDE ${String(i+1).padStart(2,'0')} / ${String(slides.length).padStart(2,'0')}`;
+    const c=document.createElement('canvas'); c.className='preview'; c.width=CANVAS_W; c.height=CANVAS_H;
+    if(selectedSlide===i) c.classList.add('selected');
+    c.onclick=()=>selectSlide(i);
+    drawSlide(c,slide,i); wrap.appendChild(num); wrap.appendChild(c); grid.appendChild(wrap);
+  });
+}
+function liveUpdate(){ buildGrid(); }
+
+function drawSlide(canvas,slide,idx){
+  const W=CANVAS_W,H=CANVAS_H, ctx=canvas.getContext('2d');
+  const isKan=currentLang==='Kannada';
+  const TF=isKan?'"Anek Kannada",sans-serif':'"Montserrat",sans-serif';
+  const BF=isKan?'"Hubballi",sans-serif':'"Inter",sans-serif';
+  const isLast=idx===slides.length-1;
+  const th=THEMES[activeTheme]||THEMES.dark;
+  ctx.fillStyle=th.bg; ctx.fillRect(0,0,W,H);
+  
+  const layout=slide.layout||'cover';
+  const ck=slide.cacheKey||slide.id;
+  const img=slideImageOverrides[ck]||imageCache[ck];
+  
+  try{
+    if(layout==='news-card') drawNewsCard(ctx,slide,idx,W,H,th,img,TF,BF,isLast);
+    else if(layout==='cover') drawCover(ctx,slide,idx,W,H,th,img,TF,BF,isLast);
+    else if(layout==='split') drawSplit(ctx,slide,idx,W,H,th,img,TF,BF,isLast);
+    else if(layout==='text-focus') drawGlass(ctx,slide,idx,W,H,th,img,TF,BF,isLast);
+    else if(layout==='magazine') drawMagazine(ctx,slide,idx,W,H,th,img,TF,BF,isLast);
+    else if(layout==='minimal') drawMinimal(ctx,slide,idx,W,H,th,img,TF,BF,isLast);
+    else if(layout==='tweet') drawTweet(ctx,slide,idx,W,H,th,img,TF,BF,isLast);
+    else if(layout==='stats') drawStats(ctx,slide,idx,W,H,th,img,TF,BF,isLast);
+    else if(layout==='timeline') drawTimeline(ctx,slide,idx,W,H,th,img,TF,BF,isLast);
+    else if(layout==='chart-bar') drawChartBar(ctx,slide,idx,W,H,th,img,TF,BF,isLast);
+    else if(layout==='cta') drawCTA(ctx,slide,idx,W,H,th,img,TF,BF);
+    else if(layout==='dateline') drawDateline(ctx,slide,idx,W,H,th,img,TF,BF,isLast);
+    else if(layout==='impact') drawImpact(ctx,slide,idx,W,H,th,img,TF,BF,isLast);
+    else drawNewsCard(ctx,slide,idx,W,H,th,img,TF,BF,isLast);
+  }catch(e){ console.error(e); }
+}
+
+function getCategoryStyle(cat){
+  const c=(cat||'').toUpperCase();
+  // Crime & Law
+  if(c.includes('CRIME')||c.includes('MURDER')||c.includes('ARREST')||c.includes('ACCUSED')) return {bg:'#7b1fa2',text:'#fff',icon:'🚨'};
+  if(c.includes('VERDICT')||c.includes('COURT')||c.includes('JUSTICE')||c.includes('LAW')) return {bg:'#4a148c',text:'#fff',icon:'⚖️'};
+  // Human Interest
+  if(c.includes('HUMAN')||c.includes('INSPIRE')||c.includes('HERO')||c.includes('STORY')) return {bg:'#e65100',text:'#fff',icon:'❤️'};
+  if(c.includes('HEALTH')||c.includes('MEDICAL')||c.includes('HOSPITAL')) return {bg:'#00838f',text:'#fff',icon:'🏥'};
+  // Politics
+  if(c.includes('ELECTION')||c.includes('VOTE')||c.includes('POLL')) return {bg:'#1a237e',text:'#fff',icon:'🗳️'};
+  if(c.includes('POLITICS')||c.includes('POLITICAL')||c.includes('GOVERNMENT')||c.includes('GOVT')) return {bg:'#283593',text:'#fff',icon:'🏛️'};
+  if(c.includes('PARLIAMENT')||c.includes('ASSEMBLY')||c.includes('MINISTER')) return {bg:'#1b5e20',text:'#fff',icon:'🇮🇳'};
+  // Economy & Business
+  if(c.includes('ECONOMY')||c.includes('MARKET')||c.includes('STOCK')||c.includes('FINANCE')) return {bg:'#004d40',text:'#fff',icon:'📈'};
+  if(c.includes('BUSINESS')||c.includes('COMPANY')||c.includes('CORPORATE')) return {bg:'#0d47a1',text:'#fff',icon:'💼'};
+  // Sports
+  if(c.includes('CRICKET')||c.includes('IPL')) return {bg:'#bf360c',text:'#fff',icon:'🏏'};
+  if(c.includes('SPORT')||c.includes('MATCH')||c.includes('GAME')||c.includes('FOOTBALL')) return {bg:'#b56000',text:'#fff',icon:'🏆'};
+  // Tech & Science
+  if(c.includes('TECH')||c.includes('AI')||c.includes('DIGITAL')) return {bg:'#00408b',text:'#fff',icon:'💻'};
+  if(c.includes('SCIENCE')||c.includes('SPACE')||c.includes('ISRO')) return {bg:'#1a237e',text:'#fff',icon:'🚀'};
+  // War & Conflict
+  if(c.includes('WAR')||c.includes('ATTACK')||c.includes('MILITARY')||c.includes('ARMY')) return {bg:'#b71c1c',text:'#fff',icon:'⚔️'};
+  if(c.includes('TERROR')||c.includes('BLAST')||c.includes('BOMB')) return {bg:'#c62828',text:'#fff',icon:'💥'};
+  // Breaking
+  if(c.includes('BREAKING')||c.includes('ALERT')||c.includes('URGENT')) return {bg:'#e60026',text:'#fff',icon:'🔴'};
+  // Environment
+  if(c.includes('CLIMATE')||c.includes('ENVIRONMENT')||c.includes('FLOOD')||c.includes('WEATHER')) return {bg:'#2e7d32',text:'#fff',icon:'🌿'};
+  // Education & Social
+  if(c.includes('EDUCATION')||c.includes('SCHOOL')||c.includes('STUDENT')) return {bg:'#4527a0',text:'#fff',icon:'📚'};
+  if(c.includes('SOCIAL')||c.includes('COMMUNITY')||c.includes('PEOPLE')) return {bg:'#f57f17',text:'#000',icon:'👥'};
+  // Default
+  return {bg:'#c41e3a',text:'#fff',icon:'📰'};
+}
+
+function drawNewsCard(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
+  const nc={bg:'#fafaf5',bg2:'#f0ece0',text:'#13120e',sub:'#4a3f35',panel:'#fff',dark:'#13120e'};
+  const catStyle=getCategoryStyle(slide.category||'NEWS');
+  ctx.fillStyle=nc.bg; ctx.fillRect(0,0,W,H);
+
+  // Top accent bar
+  ctx.fillStyle=catStyle.bg; ctx.fillRect(0,0,W,14);
+
+  // Image area
+  const imgH=400;
+  if(img){ ctx.save(); rr(ctx,52,36,W-104,imgH,14); ctx.clip(); drawImgCover(ctx,img,52,36,W-104,imgH); ctx.restore(); }
+  else{ ctx.fillStyle=nc.bg2; rr(ctx,52,36,W-104,imgH,14); ctx.fill(); fillFallbackBg(ctx,W-104,imgH,{bg2:'#e8e0d4',panel:'#d8d0c4',accent:catStyle.bg},52,36); }
+
+  // ── CREATIVE TICKER ───────────────────────────────────────
+  // Shows: LOCATION • SOURCE  (e.g. "KERALA • NDTV" or "NEW DELHI • THE HINDU")
+  const ticker = (slide.ticker||slide.location||'INDIA').toUpperCase();
+  const srcName = (slide.source||'LIVE NEWS').toUpperCase();
+  const tickerText = `📍 ${ticker}`;
+  const tickerBg = catStyle.bg+'22';
+  ctx.fillStyle=tickerBg;
+  ctx.fillRect(52, 36+imgH, W-104, 46);
+  // Scrolling ticker style — left badge
+  ctx.fillStyle=catStyle.bg; ctx.fillRect(52,36+imgH,6,46);
+  ctx.fillStyle=catStyle.bg; ctx.font=`800 17px ${BF}`; ctx.textBaseline='middle';
+  ctx.fillText(tickerText, 72, 36+imgH+23);
+  // Right: source name
+  ctx.fillStyle=nc.sub; ctx.font=`600 15px ${BF}`; ctx.textAlign='right';
+  ctx.fillText(srcName, W-60, 36+imgH+23);
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+
+  // ── CREATIVE CATEGORY BADGE ───────────────────────────────
+  const cat = (slide.category||'NEWS').toUpperCase();
+  const badgeY = 36+imgH+62;
+  ctx.fillStyle=catStyle.bg;
+  rr(ctx,52,badgeY,ctx.measureText(`${catStyle.icon} ${cat}`).width+40,36,5); ctx.fill();
+  ctx.fillStyle=catStyle.text; ctx.font=`800 16px ${TF}`; ctx.textBaseline='middle';
+  ctx.fillText(`${catStyle.icon} ${cat}`, 68, badgeY+18); ctx.textBaseline='alphabetic';
+
+  // Title
+  let cy = badgeY+54;
+  cy=wrapText(ctx,slide.title,52,cy,W-104,72,`800 56px ${TF}`,nc.text);
+
+  // Divider
+  ctx.fillStyle=catStyle.bg; ctx.fillRect(52,cy+8,90,4); cy+=28;
+
+  // Body
+  wrapText(ctx,slide.body,52,cy,W-104,40,`400 30px ${BF}`,nc.sub);
+
+  // Footer
+  ctx.fillStyle=nc.dark; ctx.fillRect(0,H-72,W,72);
+  const handle=document.getElementById('handleText')?.value||'@newspage';
+  let ncTextX=66;
+  if(avatarImg){
+    const aSize=46, aX=66, aY=H-36-aSize/2;
+    ctx.save(); ctx.beginPath(); ctx.arc(aX+aSize/2,aY+aSize/2,aSize/2,0,Math.PI*2); ctx.clip();
+    drawImgCover(ctx,avatarImg,aX,aY,aSize,aSize); ctx.restore();
+    ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(aX+aSize/2,aY+aSize/2,aSize/2,0,Math.PI*2); ctx.stroke();
+    ncTextX=aX+aSize+14;
+  }
+  ctx.fillStyle='#ffffff'; ctx.font=`600 20px ${BF}`; ctx.textBaseline='middle';
+  ctx.fillText(handle,ncTextX,H-36); ctx.textBaseline='alphabetic';
+}
+
+function drawStats(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
+  ctx.fillStyle=th.bg; ctx.fillRect(0,0,W,H);
+  if(img){ ctx.save(); ctx.globalAlpha=0.10; drawImgCover(ctx,img,0,0,W,H); ctx.globalAlpha=1; ctx.restore(); }
+  let cy=115; cy=wrapText(ctx,slide.title,60,cy,W-120,82,`800 66px ${TF}`,th.text);
+  ctx.fillStyle=th.accent; ctx.fillRect(60,cy+12,90,5); cy+=46;
+
+  const rawLines=(slide.body||'').split('\n').map(l => l.replace(/^[-•*]\s+/, '').replace(/^\(?\d+[\.\)]\s+/, '').trim()).filter(Boolean);
+  const barColors=[th.accent,'#ff4d6d','#00e5b4','#f59e0b','#a78bfa'];
+  const itemCount=Math.min(rawLines.length,5);
+  const usableH=Math.max(100, H-cy-95); 
+  let itemH=Math.max(40, Math.min(110, Math.floor(usableH/Math.max(itemCount,1))-10));
+  const gap=Math.floor((usableH - itemH*itemCount) / Math.max(1, itemCount+1));
+  
+  rawLines.slice(0,5).forEach((line,i)=>{
+    const y=cy+gap+i*(itemH+gap); const col=barColors[i%barColors.length];
+    ctx.fillStyle=(th.bg2||'#1a1a24'); rr(ctx,60,y,W-120,itemH,12); ctx.fill();
+    ctx.fillStyle=col; rr(ctx,60,y,10,itemH,12); ctx.fill();
+    ctx.fillStyle=th.text; ctx.font=`700 ${Math.min(46, Math.round(itemH*0.44))}px ${BF}`; ctx.textBaseline='middle';
+    ctx.fillText(line, 100, y+itemH/2, W-180); ctx.textBaseline='alphabetic';
+  });
+  drawFooterDark(ctx,th,W,H,isLast,TF,BF);
+}
+
+// THE NEW BAR CHART LAYOUT
+function drawChartBar(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
+  ctx.fillStyle=th.bg; ctx.fillRect(0,0,W,H);
+  if(img){ ctx.save(); ctx.globalAlpha=0.06; drawImgCover(ctx,img,0,0,W,H); ctx.globalAlpha=1; ctx.restore(); }
+  
+  let cy=115; cy=wrapText(ctx,slide.title,60,cy,W-120,82,`800 66px ${TF}`,th.text);
+  ctx.fillStyle=th.accent; ctx.fillRect(60,cy+12,90,5); cy+=50;
+  
+  if (slide.body) {
+      wrapText(ctx,slide.body,60,cy,W-120,40,`400 32px ${BF}`,th.sub||'#94a3b8'); 
+      cy+= 80;
+  } else {
+      cy+= 20;
+  }
+
+  // Use provided chartData, or fallback if Gemini forgot
+  const data = (slide.chartData && slide.chartData.length > 0) ? slide.chartData : [{label:"Item A", value:75}, {label:"Item B", value:40}];
+  const maxVal = Math.max(...data.map(d=>parseFloat(d.value)||0), 1);
+  const barColors = [th.accent, '#ff3c5c', '#00e5b4', '#f59e0b', '#a78bfa'];
+  
+  const usableH = H - cy - 120;
+  const itemH = Math.min(70, Math.floor(usableH / Math.max(data.length, 1)) - 30);
+  const gap = Math.floor((usableH - itemH*data.length) / Math.max(1, data.length+1));
+  
+  data.slice(0, 6).forEach((item, i)=>{
+    const y = cy + gap + i*(itemH+gap);
+    const col = barColors[i%barColors.length];
+    const val = parseFloat(item.value) || 0;
+    
+    // Draw Label
+    ctx.fillStyle=th.text; ctx.font=`700 28px ${BF}`; ctx.textBaseline='bottom';
+    ctx.fillText(item.label, 60, y - 8); ctx.textBaseline='alphabetic';
+    
+    // Draw Background Track
+    ctx.fillStyle=(th.bg2||'#1a1a24'); rr(ctx,60,y,W-120,itemH,12); ctx.fill();
+    
+    // Draw Colored Fill
+    const fillW = Math.max(20, ((W-120) * val) / maxVal);
+    ctx.fillStyle=col; rr(ctx,60,y,fillW,itemH,12); ctx.fill();
+    
+    // Draw Number
+    ctx.font=`800 32px ${TF}`; ctx.textBaseline='middle'; 
+    if(fillW > 100) {
+        ctx.fillStyle='#fff'; ctx.textAlign='right';
+        ctx.fillText(val, 60 + fillW - 20, y+itemH/2);
+    } else {
+        ctx.fillStyle=th.text; ctx.textAlign='left';
+        ctx.fillText(val, 60 + fillW + 20, y+itemH/2);
+    }
+    ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  });
+  
+  drawFooterDark(ctx,th,W,H,isLast,TF,BF);
+}
+
+function drawTimeline(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
+  ctx.fillStyle=th.bg; ctx.fillRect(0,0,W,H);
+  if(img){ ctx.save(); ctx.globalAlpha=0.07; drawImgCover(ctx,img,0,0,W,H); ctx.globalAlpha=1; ctx.restore(); }
+  let cy=115; cy=wrapText(ctx,slide.title,60,cy,W-120,80,`800 62px ${TF}`,th.text); cy+=28;
+
+  const rawLines=(slide.body||'').split('\n').map(l => l.replace(/^[-•*]\s+/, '').replace(/^\(?\d+[\.\)]\s+/, '').trim()).filter(Boolean);
+  const itemCount=Math.min(rawLines.length,5);
+  const usableH=Math.max(100, H-cy-95); 
+  let itemH=Math.max(40, Math.min(120,Math.floor(usableH/Math.max(itemCount,1))-8));
+  const gap=Math.floor((usableH-itemH*itemCount)/Math.max(1, itemCount+1));
+
+  rawLines.slice(0,5).forEach((line,i)=>{
+    const y=cy+gap+i*(itemH+gap); const midY=y+itemH/2;
+    ctx.fillStyle=th.accent+'33'; ctx.beginPath(); ctx.arc(82,midY,26,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=th.accent; ctx.beginPath(); ctx.arc(82,midY,18,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=(th.bg2||'#1a1a24')+'cc'; rr(ctx,138,y,W-198,itemH,10); ctx.fill();
+    ctx.fillStyle=th.text; ctx.font=`700 ${Math.min(48,Math.round(itemH*0.40))}px ${BF}`; ctx.textBaseline='middle';
+    ctx.fillText(line, 158, midY, W-228); ctx.textBaseline='alphabetic';
+  });
+  drawFooterDark(ctx,th,W,H,isLast,TF,BF);
+}
+
+function drawCover(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
+  if(img){ drawImgCover(ctx,img,0,0,W,H); }else{ fillFallbackBg(ctx,W,H,th); }
+  const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'rgba(0,0,0,0.05)'); g.addColorStop(0.75,th.bg+'cc'); g.addColorStop(1,th.bg);
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H); ctx.fillStyle=th.accent; ctx.fillRect(0,0,W,10);
+  let cy=H-650; cy=wrapText(ctx,slide.title,60,cy,W-120,90,`900 84px ${TF}`,th.text);
+  ctx.fillStyle=th.accent; ctx.fillRect(60,cy+14,100,6);
+  wrapText(ctx,slide.body,60,cy+50,W-120,48,`500 38px ${BF}`,th.sub||'rgba(255,255,255,0.8)');
+  drawFooterDark(ctx,th,W,H,isLast,TF,BF);
+}
+
+function drawSplit(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
+  ctx.fillStyle=th.bg; ctx.fillRect(0,0,W,H);
+  if(img){ ctx.save(); rr(ctx,W/2+20,0,W/2-20,H,0); ctx.clip(); drawImgCover(ctx,img,W/2+20,0,W/2-20,H); ctx.restore(); }
+  else{ ctx.save(); rr(ctx,W/2+20,0,W/2-20,H,0); ctx.clip(); fillFallbackBg(ctx,W/2,H,th); ctx.restore(); }
+  let cy=140; cy=wrapText(ctx,slide.title,42,cy,W/2-80,84,`800 66px ${TF}`,th.text);
+  ctx.fillStyle=th.accent; ctx.fillRect(42,cy+18,70,5);
+  wrapText(ctx,slide.body,42,cy+56,W/2-80,50,`400 36px ${BF}`,th.sub||'#94a3b8');
+  drawFooterDark(ctx,th,W,H,isLast,TF,BF);
+}
+
+function drawGlass(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
+  if(img){ drawImgCover(ctx,img,0,0,W,H); ctx.fillStyle='rgba(0,0,0,0.52)'; ctx.fillRect(0,0,W,H); } else{ fillFallbackBg(ctx,W,H,th); }
+  ctx.fillStyle='rgba(255,255,255,0.06)'; rr(ctx,60,200,W-120,H-410,24); ctx.fill();
+  let cy=280; cy=wrapText(ctx,slide.title,W/2,cy,W-220,86,`800 70px ${TF}`,'#ffffff','center');
+  ctx.fillStyle=th.accent+'bb'; ctx.fillRect(W/2-50,cy+20,100,4);
+  wrapText(ctx,slide.body,W/2,cy+56,W-220,50,`400 36px ${BF}`,'rgba(255,255,255,0.85)','center');
+  drawFooterDark(ctx,th,W,H,isLast,TF,BF);
+}
+
+function drawMagazine(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
+  // Full bleed image top 60%
+  if(img){ ctx.save(); ctx.beginPath(); ctx.rect(0,0,W,H*0.60); ctx.clip(); drawImgCover(ctx,img,0,0,W,H*0.60); ctx.restore(); }
+  else { fillFallbackBg(ctx,W,H*0.60,th); }
+  // Gradient fade at bottom of image
+  const grad=ctx.createLinearGradient(0,H*0.38,0,H*0.60);
+  grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,th.bg);
+  ctx.fillStyle=grad; ctx.fillRect(0,H*0.38,W,H*0.22);
+  // Text area below
+  ctx.fillStyle=th.bg; ctx.fillRect(0,H*0.60,W,H*0.40);
+  // Category badge
+  const cat=(slide.category||'NEWS').toUpperCase();
+  const catStyle=getCategoryStyle(slide.category||'NEWS');
+  ctx.fillStyle=catStyle.bg; rr(ctx,58,H*0.61,ctx.measureText(cat).width+48,38,5); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font=`800 17px ${TF}`; ctx.textBaseline='middle';
+  ctx.fillText(cat, 78, H*0.61+19); ctx.textBaseline='alphabetic';
+  // Ticker / location line
+  const ticker=(slide.ticker||slide.location||'').toUpperCase();
+  if(ticker){
+    ctx.fillStyle=th.accent; ctx.font=`700 16px ${BF}`; ctx.textBaseline='middle';
+    ctx.fillText(`📍 ${ticker}`, 58, H*0.61+62); ctx.textBaseline='alphabetic';
+  }
+  // Title — max 2 lines, 5-6 words, large font
+  const titleY = ticker ? H*0.61+88 : H*0.61+54;
+  const titleEnd = wrapText(ctx,slide.title,58,titleY,W-116,82,`900 72px ${TF}`,th.text);
+  // Divider
+  ctx.fillStyle=catStyle.bg; ctx.fillRect(58,titleEnd+10,80,4);
+  // Body — 20-25 words, compact
+  wrapText(ctx,slide.body,58,titleEnd+30,W-116,44,`400 32px ${BF}`,th.sub||'#94a3b8');
+  drawFooterDark(ctx,th,W,H,isLast,TF,BF);
+}
+
+function drawMinimal(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
+  ctx.fillStyle=th.bg; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=th.accent; ctx.fillRect(0,0,W,10); ctx.fillRect(0,0,10,H);
+  if(img){ ctx.save(); ctx.globalAlpha=0.07; drawImgCover(ctx,img,0,0,W,H); ctx.globalAlpha=1; ctx.restore(); }
+  let cy=240; cy=wrapText(ctx,slide.title,80,cy,W-160,104,`800 86px ${TF}`,th.text);
+  ctx.fillStyle=th.accent; ctx.fillRect(80,cy+22,120,8);
+  wrapText(ctx,slide.body,80,cy+66,W-160,52,`400 40px ${BF}`,th.sub||'#94a3b8');
+  drawFooterDark(ctx,th,W,H,isLast,TF,BF);
+}
+
+function drawTweet(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
+  ctx.fillStyle=th.bg; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=th.panel||th.bg2||'#1e1e2e'; rr(ctx,70,110,W-140,H-300,28); ctx.fill();
+  ctx.fillStyle=th.accent; ctx.beginPath(); ctx.arc(140,196,44,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=th.text; ctx.font=`800 28px ${TF}`; ctx.fillText('News Insight',208,188);
+  let cy=310; cy=wrapText(ctx,slide.title,118,cy,W-236,72,`700 52px ${TF}`,th.text);
+  if(img){ ctx.save(); rr(ctx,118,cy+28,W-236,200,14); ctx.clip(); drawImgCover(ctx,img,118,cy+28,W-236,200); ctx.restore(); cy+=228; }
+  drawFooterDark(ctx,th,W,H,isLast,TF,BF);
+}
+
+function drawDateline(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
+  const catStyle=getCategoryStyle(slide.category||'NEWS');
+  if(img){ drawImgCover(ctx,img,0,0,W,H); }else{ fillFallbackBg(ctx,W,H,th); }
+  const ov=ctx.createLinearGradient(0,0,0,H); ov.addColorStop(0,'rgba(0,0,0,0.25)'); ov.addColorStop(1,'rgba(0,0,0,0.92)');
+  ctx.fillStyle=ov; ctx.fillRect(0,0,W,H);
+  let cy=H-420; cy=wrapText(ctx,slide.title,58,cy,W-116,88,`900 76px ${TF}`,'#ffffff');
+  ctx.fillStyle=catStyle.bg; ctx.fillRect(58,cy+12,200,6); cy+=44;
+  wrapText(ctx,slide.body,58,cy,W-116,46,`400 36px ${BF}`,'rgba(255,255,255,0.85)');
+  drawFooterDark(ctx,th,W,H,isLast,TF,BF);
+}
+
+function drawImpact(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
+  ctx.fillStyle='#0a0a0f'; ctx.fillRect(0,0,W*0.55,H);
+  ctx.fillStyle=th.accent; ctx.fillRect(W*0.55,0,W*0.45,H);
+  if(img){ ctx.save(); ctx.beginPath(); ctx.rect(W*0.55,0,W*0.45,H); ctx.clip(); ctx.globalAlpha=0.18; drawImgCover(ctx,img,W*0.55,0,W*0.45,H); ctx.globalAlpha=1; ctx.restore(); }
+  let cy=310; cy=wrapText(ctx,slide.title,58,cy,W*0.42,90,`900 68px ${TF}`,'#ffffff');
+  wrapText(ctx,slide.body,W*0.58+30,H*0.42,W*0.38,58,`600 38px ${BF}`,'rgba(255,255,255,0.95)');
+  drawFooterDark(ctx,th,W,H,isLast,TF,BF);
+}
+
+function drawCTA(ctx,slide,idx,W,H,th,img,TF,BF){
+  fillFallbackBg(ctx,W,H,th);
+  if(img){ ctx.save(); ctx.globalAlpha=0.18; drawImgCover(ctx,img,0,0,W,H); ctx.globalAlpha=1; ctx.restore(); }
+  let cy=350; cy=wrapText(ctx,slide.title||'Follow For More!',W/2,cy,W-160,90,`800 82px ${TF}`,th.text,'center');
+  ctx.fillStyle=th.accent; ctx.fillRect(W/2-60,cy+18,120,6); cy+=70;
+  ctx.fillStyle=th.accent; rr(ctx,W/2-200,cy+40,400,82,41); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font=`800 30px ${TF}`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('FOLLOW & SHARE',W/2,cy+81);
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  drawFooterDark(ctx,th,W,H,false,TF,BF);
+}
+
+function drawFooterDark(ctx,th,W,H,isLast,TF,BF){
+  ctx.fillStyle=(th.bg2||'#1a1a24')+'ee'; ctx.fillRect(0,H-74,W,74);
+  const handle=document.getElementById('handleText')?.value||'@yourhandle';
+  let textX=60;
+  if(avatarImg){
+    const aSize=48, aX=60, aY=H-37-aSize/2;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(aX+aSize/2,aY+aSize/2,aSize/2,0,Math.PI*2); ctx.clip();
+    drawImgCover(ctx,avatarImg,aX,aY,aSize,aSize);
+    ctx.restore();
+    ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(aX+aSize/2,aY+aSize/2,aSize/2,0,Math.PI*2); ctx.stroke();
+    textX=aX+aSize+14;
+  }
+  ctx.fillStyle=th.sub||'#94a3b8'; ctx.font=`600 20px ${BF}`; ctx.textBaseline='middle'; ctx.fillText(handle,textX,H-37); ctx.textBaseline='alphabetic';
+}
+
+// 15% TOP ANCHOR CROP: PREVENTS HEAD CUTOFFS!
+function drawImgCover(ctx,img,x,y,w,h){
+  if(!img) return;
+  const ir=img.width/img.height, cr=w/h; let dw,dh,dx,dy;
+  if(ir>cr){
+      dh=h; dw=img.width*(h/img.height); dx=x+(w-dw)/2; dy=y;
+  } else {
+      dw=w; dh=img.height*(w/img.width); dx=x; 
+      dy=y+(h-dh)*0.15; // <--- The magic anchor that keeps heads in frame
+  }
+  ctx.save(); ctx.beginPath(); ctx.rect(x,y,w,h); ctx.clip(); ctx.drawImage(img,dx,dy,dw,dh); ctx.restore();
+}
+
+function rr(ctx,x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+}
+
+function wrapText(ctx,text,x,y,maxW,lh,font,color,align='left'){
+  if(!text) return y; ctx.font=font; ctx.fillStyle=color; ctx.textAlign=align; ctx.textBaseline='top';
+  const paras=String(text).split('\n'); let cy=y;
+  for(const p of paras){
+    const words=p.split(' '); let line='';
+    for(let i=0;i<words.length;i++){
+      const test=line+words[i]+' ';
+      if(ctx.measureText(test).width>maxW&&i>0){ctx.fillText(line.trim(),x,cy);line=words[i]+' ';cy+=lh;} else{line=test;}
+    }
+    ctx.fillText(line.trim(),x,cy); cy+=lh;
+  }
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic'; return cy;
+}
+
+function fillFallbackBg(ctx,W,H,th,ox=0,oy=0){
+  const g=ctx.createLinearGradient(ox,oy,W,H); g.addColorStop(0,th.bg2||'#1a1a24'); g.addColorStop(1,th.panel||th.bg2||'#1e1e2e');
+  ctx.fillStyle=g; ctx.fillRect(ox,oy,W,H); ctx.fillStyle=(th.accent||'#5865f2')+'08';
+  for(let x=ox;x<W;x+=80){ for(let y=oy;y<H;y+=80){ ctx.beginPath(); ctx.arc(x,y,2,0,Math.PI*2); ctx.fill(); } }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INSTAGRAM DEPLOY
+═══════════════════════════════════════════════════════════ */
+async function uploadToCloudinary(b64){
+  const cn=document.getElementById('cloudName').value.trim(); const pr=document.getElementById('uploadPreset').value.trim();
+  if(!cn||!pr) throw new Error('Cloudinary cloud name + preset required.');
+  const form=new FormData(); form.append('file',`data:image/jpeg;base64,${b64}`); form.append('upload_preset',pr);
+  const res=await fetch(`https://api.cloudinary.com/v1_1/${cn}/image/upload`,{method:'POST',body:form});
+  const data=await res.json(); if(data.error) throw new Error(data.error.message); return data.secure_url;
+}
+
+async function verifyToken(){
+  const token=document.getElementById('accessToken').value.trim();
+  if(!token){ log('ERR: Paste token first.','err'); return; }
+  log('🔐 Verifying Meta token…');
+  try{
+    const r1=await fetch(`https://graph.instagram.com/v21.0/me?fields=id,username&access_token=${token}`);
+    const d1=await r1.json();
+    if(!d1.error){ document.getElementById('userId').value=d1.id; log(`✅ IG: @${d1.username}`,'ok'); setStatus('AUTHED'); return; }
+    const r2=await fetch(`https://graph.facebook.com/v21.0/me/accounts?fields=instagram_business_account{id,username}&access_token=${token}`);
+    const d2=await r2.json();
+    if(d2.error) throw new Error(d2.error.message);
+    for(const p of (d2.data||[])){
+      if(p.instagram_business_account){
+        document.getElementById('userId').value=p.instagram_business_account.id; log(`✅ Linked IG Business found.`,'ok'); setStatus('AUTHED'); return;
+      }
+    }
+    throw new Error('No connected IG Account found.');
+  }catch(err){ log(`Auth failed: ${err.message}`,'err'); }
+}
+
+async function handleRun(){
+  const userId=document.getElementById('userId').value.trim(), token=document.getElementById('accessToken').value.trim(), caption=document.getElementById('caption').value.trim();
+  if(!userId||!token) return log('ERR: Missing IG credentials. Click AUTH first.','err');
+  if(!slides.length) return log('ERR: Generate slides first.','err');
+  const btn=document.getElementById('runBtn'); btn.disabled=true; btn.textContent='⏳ Deploying…'; setStatus('DEPLOYING…');
+  try{
+    log('─── DEPLOY START ───','warn'); const urls=[];
+    for(let i=0;i<slides.length;i++){
+      log(`☁️ Uploading slide ${i+1} to Cloudinary…`);
+      const cv=document.createElement('canvas'); cv.width=CANVAS_W; cv.height=CANVAS_H; drawSlide(cv,slides[i],i);
+      const b64=cv.toDataURL('image/jpeg',.93).split(',')[1];
+      urls.push(await uploadToCloudinary(b64));
+    }
+    const childIds=[];
+    for(let i=0;i<urls.length;i++){
+      const p=new URLSearchParams({image_url:urls[i],is_carousel_item:'true',access_token:token});
+      const r=await fetch(`https://graph.instagram.com/v21.0/${userId}/media`,{method:'POST',body:p});
+      const d=await r.json(); if(d.error) throw new Error(d.error.message); childIds.push(d.id);
+    }
+    const p2=new URLSearchParams({media_type:'CAROUSEL',children:childIds.join(','),caption,access_token:token});
+    const r2=await fetch(`https://graph.instagram.com/v21.0/${userId}/media`,{method:'POST',body:p2});
+    const d2=await r2.json(); if(d2.error) throw new Error(d2.error.message);
+    const carouselId=d2.id; log(`🎠 Carousel container created. Wait for Meta processing…`,'ok');
+    
+    let ready=false;
+    for(let i=0;i<20;i++){
+      const r3=await fetch(`https://graph.instagram.com/v21.0/${carouselId}?fields=status_code&access_token=${token}`);
+      const d3=await r3.json(); if(d3.status_code==='FINISHED'){ready=true;break;}
+      if(d3.status_code==='ERROR') throw new Error('Meta rejected the container.');
+      await new Promise(r=>setTimeout(r,5000));
+    }
+    if(!ready) throw new Error('Meta processing timeout.');
+    const p4=new URLSearchParams({creation_id:carouselId,access_token:token});
+    const r4=await fetch(`https://graph.instagram.com/v21.0/${userId}/media_publish`,{method:'POST',body:p4});
+    const d4=await r4.json(); if(d4.error) throw new Error(d4.error.message);
+    log(`🎉 SUCCESS! Post ID: ${d4.id}`,'ok'); setStatus('POSTED ✓');
+  }catch(err){ log(`❌ DEPLOY ERROR: ${err.message}`,'err'); setStatus('DEPLOY FAILED'); }
+  btn.disabled=false; btn.textContent='🚀 Deploy to Instagram';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FACEBOOK PAGE DEPLOY
+   Uses same Meta token — needs pages_manage_posts permission
+═══════════════════════════════════════════════════════════ */
+async function handleFBRun(){
+  const token=document.getElementById('accessToken').value.trim();
+  const caption=document.getElementById('caption').value.trim();
+  if(!token) return log('ERR: Paste Meta token first (needs pages_manage_posts).','err');
+  if(!slides.length) return log('ERR: Generate slides first.','err');
+  const cn=document.getElementById('cloudName').value.trim();
+  const pr=document.getElementById('uploadPreset').value.trim();
+  if(!cn||!pr) return log('ERR: Cloudinary name + preset required for hosting images.','err');
+
+  const btn=document.querySelector('button[onclick="handleFBRun()"]');
+  btn.disabled=true; btn.textContent='⏳ Deploying to Facebook…'; setStatus('FB DEPLOY…');
+  log('─── FACEBOOK DEPLOY START ───','warn');
+
+  try{
+    // 1. Get Facebook Page ID
+    const meRes=await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${token}`);
+    const meData=await meRes.json();
+    if(meData.error) throw new Error(meData.error.message);
+    const page=meData.data?.[0];
+    if(!page) throw new Error('No Facebook Page found on this token.');
+    const pageId=page.id; const pageToken=page.access_token;
+    log(`📘 Page: ${page.name} (${pageId})`,'ok');
+
+    // 2. Upload slides to Cloudinary
+    const urls=[];
+    for(let i=0;i<slides.length;i++){
+      log(`☁️ Uploading slide ${i+1}…`);
+      const cv=document.createElement('canvas'); cv.width=CANVAS_W; cv.height=CANVAS_H;
+      drawSlide(cv,slides[i],i);
+      const b64=cv.toDataURL('image/jpeg',.93).split(',')[1];
+      const form=new FormData(); form.append('file',`data:image/jpeg;base64,${b64}`); form.append('upload_preset',pr);
+      const r=await fetch(`https://api.cloudinary.com/v1_1/${cn}/image/upload`,{method:'POST',body:form});
+      const d=await r.json(); if(d.error) throw new Error(d.error.message);
+      urls.push(d.secure_url);
+    }
+    log(`✅ ${urls.length} slides uploaded to Cloudinary`,'ok');
+
+    // 3. Post to Facebook Page as photo album (multi-photo post)
+    // Facebook doesn't support carousel like Instagram — post as multi-image
+    const photoIds=[];
+    for(const imgUrl of urls){
+      const p=new URLSearchParams({url:imgUrl,published:'false',access_token:pageToken});
+      const r=await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`,{method:'POST',body:p});
+      const d=await r.json(); if(d.error) throw new Error(d.error.message);
+      photoIds.push(d.id);
+    }
+
+    // 4. Publish as multi-photo post
+    const postParams=new URLSearchParams({message:caption,access_token:pageToken});
+    photoIds.forEach((id,i)=>postParams.append(`attached_media[${i}]`,JSON.stringify({media_fbid:id})));
+    const postR=await fetch(`https://graph.facebook.com/v21.0/${pageId}/feed`,{method:'POST',body:postParams});
+    const postD=await postR.json(); if(postD.error) throw new Error(postD.error.message);
+
+    log(`🎉 Facebook post published! ID: ${postD.id}`,'ok'); setStatus('FB POSTED ✓');
+  }catch(err){
+    log(`❌ Facebook deploy error: ${err.message}`,'err'); setStatus('FB FAILED');
+  }
+  btn.disabled=false; btn.textContent='📘 Deploy to Facebook Page';
+}
+async function toggleAutopilot(){
+  const btn=document.getElementById('autopilotBtn'), badge=document.getElementById('autoStatus');
+  if(autopilotTimer){
+    clearInterval(autopilotTimer); autopilotTimer=null; btn.textContent='▶ Start Autopilot'; btn.classList.remove('btn-ap'); badge.textContent='OFF'; badge.style.color='var(--muted)'; log('🛑 Autopilot disabled.','warn');
+  }else{
+    if(!document.getElementById('userId').value||!document.getElementById('geminiKey').value) return log('ERR: Auth + API keys required.','err');
+    btn.textContent='⏹ Stop Autopilot'; btn.classList.add('btn-ap'); badge.textContent='ACTIVE'; badge.style.color='var(--accent4)'; log('🤖 Autopilot ARMED.','ok');
+    autopilotTimer=setInterval(runAutopilotCycle,7200000); runAutopilotCycle();
+  }
+}
+async function runAutopilotCycle(){
+  log('🤖 Autopilot cycle started…','warn');
+  try{ switchMode('news'); await fetchLiveNews(); await generateTop10NewsCarousel(); await handleRun(); log('🤖 Cycle done. Next in 2 hours.','ok'); }catch(err){ log(`🤖 Cycle failed: ${err.message}`,'err'); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CHART DATA EDITOR
+═══════════════════════════════════════════════════════════ */
+function applyChartEdit(raw){
+  if(selectedSlide===null) return;
+  const lines = raw.split('\n').filter(l=>l.includes(':'));
+  const data = lines.map(l=>{
+    const [label,...rest]=l.split(':'); const value=parseFloat(rest.join(':'))||0;
+    return {label:label.trim(), value};
+  }).filter(d=>d.label&&d.value>0);
+  if(data.length>0){ slides[selectedSlide].chartData=data; buildGrid(); }
+}
+
+// Show chart editor only for chart-bar slides
+const origSelectSlide = selectSlide;
+function selectSlide(i){
+  const all=document.querySelectorAll('canvas.preview'); all.forEach(c=>c.classList.remove('selected'));
+  if(selectedSlide===i){selectedSlide=null;document.getElementById('slideEditor').style.display='none';return;}
+  selectedSlide=i; if(all[i]) all[i].classList.add('selected');
+  const s=slides[i];
+  document.getElementById('editorTitle').textContent=`Editing Slide ${i+1}`;
+  document.getElementById('editTitle').value=s.title||'';
+  document.getElementById('editBody').value=s.body||'';
+  document.getElementById('editImgSource').value=s.imageQuery||'';
+  document.getElementById('editLayout').value=s.layout||'news-card';
+  document.getElementById('slideEditor').style.display='block';
+
+  // Show chart editor only if chart-bar
+  const isChart = s.layout==='chart-bar';
+  document.getElementById('chartEditorPanel').style.display=isChart?'block':'none';
+  if(isChart && s.chartData){
+    document.getElementById('editChartData').value=(s.chartData||[]).map(d=>`${d.label}:${d.value}`).join('\n');
+  }
+
+  document.getElementById('imgOverridePanel').style.display='block';
+  const ck=s.cacheKey||s.id;
+  const existingOv=slideImageOverrides[ck];
+  const prevEl=document.getElementById('overridePreview');
+  document.getElementById('overrideUrlInput').value='';
+  if(existingOv?.src) prevEl.src=existingOv.src; else prevEl.src='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   OFFLINE DOWNLOAD — ALL SLIDES AS ZIP
+═══════════════════════════════════════════════════════════ */
+async function downloadAllSlides(){
+  if(!slides.length){ log('ERR: Generate slides first.','err'); return; }
+  log('📦 Preparing download…','warn');
+  try{
+    // Try JSZip if available, otherwise download individually
+    const hasJSZip = typeof JSZip !== 'undefined';
+    if(hasJSZip){
+      const zip = new JSZip();
+      for(let i=0;i<slides.length;i++){
+        const cv=document.createElement('canvas'); cv.width=CANVAS_W; cv.height=CANVAS_H;
+        drawSlide(cv,slides[i],i);
+        const b64=cv.toDataURL('image/jpeg',.95).split(',')[1];
+        zip.file(`slide_${String(i+1).padStart(2,'0')}.jpg`, b64, {base64:true});
+      }
+      const blob=await zip.generateAsync({type:'blob'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+      a.download=`carousel_${Date.now()}.zip`; a.click();
+      log('✅ ZIP downloaded!','ok');
+    } else {
+      // Fallback: download each slide individually
+      for(let i=0;i<slides.length;i++){
+        const cv=document.createElement('canvas'); cv.width=CANVAS_W; cv.height=CANVAS_H;
+        drawSlide(cv,slides[i],i);
+        const a=document.createElement('a'); a.href=cv.toDataURL('image/jpeg',.95);
+        a.download=`slide_${String(i+1).padStart(2,'0')}.jpg`;
+        a.click(); await new Promise(r=>setTimeout(r,200));
+      }
+      log(`✅ ${slides.length} slides downloaded!`,'ok');
+    }
+  }catch(err){ log(`Download error: ${err.message}`,'err'); }
+}
+
+window.onload=loadSettings;
+</script>
+</body>
+</html>
