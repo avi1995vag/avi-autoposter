@@ -36,9 +36,10 @@ app = Flask(__name__)
 CORS(app, origins=[
     "http://localhost",
     "http://127.0.0.1",
-    "null",                          # local file:// access
-    "https://yourwebsite.com",       # ← replace with your actual domain
-    "https://www.yourwebsite.com",   # ← replace with your actual domain
+    "null",
+    "https://avinashvagarnal.gt.tc",
+    "http://avinashvagarnal.gt.tc",
+    "https://avi-autoposter.onrender.com",
 ])
 
 HEADERS = {
