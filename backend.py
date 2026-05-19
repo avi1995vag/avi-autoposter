@@ -403,51 +403,53 @@ def from_google_images(query):
 
 # ── MASTER ───────────────────────────────────────────────────
 def find_images(query, article_url=''):
+    """
+    Find images fast — NO blocking dimension check.
+    Return candidates scored by CDN quality.
+    Dimension check removed: it caused 30s+ timeouts → HTTP 502.
+    Quality is ensured by CDN scoring and BAD URL filtering instead.
+    """
     candidates = []
     print(f'\n{"━"*55}\n[Search] "{query}"\n{"━"*55}')
+    try:
+        if article_url:
+            add_u(candidates, from_article(article_url))
+            print(f'  After Article:    {len(candidates)}')
 
-    if article_url:
-        add_u(candidates, from_article(article_url))
-        print(f'  After Article:    {len(candidates)}')
+        if len(candidates) < 3:
+            add_u(candidates, from_google_news_rss(query))
+            print(f'  After GNewsRSS:   {len(candidates)}')
 
-    if len(candidates) < 3:
-        add_u(candidates, from_google_news_rss(query))
-        print(f'  After GNewsRSS:   {len(candidates)}')
+        if len(candidates) < 3:
+            add_u(candidates, from_ndtv(query))
+            print(f'  After NDTV:       {len(candidates)}')
 
-    if len(candidates) < 3:
-        add_u(candidates, from_ndtv(query))
-        print(f'  After NDTV:       {len(candidates)}')
+        if len(candidates) < 3:
+            add_u(candidates, from_toi(query))
+            print(f'  After TOI:        {len(candidates)}')
 
-    if len(candidates) < 3:
-        add_u(candidates, from_toi(query))
-        print(f'  After TOI:        {len(candidates)}')
+        if len(candidates) < 3:
+            add_u(candidates, from_indiatoday(query))
+            print(f'  After IndiaToday: {len(candidates)}')
 
-    if len(candidates) < 3:
-        add_u(candidates, from_indiatoday(query))
-        print(f'  After IndiaToday: {len(candidates)}')
+        if len(candidates) < 3:
+            add_u(candidates, from_bbc(query))
+            print(f'  After BBC:        {len(candidates)}')
 
-    if len(candidates) < 3:
-        add_u(candidates, from_bbc(query))
-        print(f'  After BBC:        {len(candidates)}')
+        if len(candidates) < 3:
+            add_u(candidates, from_google_images(query))
+            print(f'  After GoogleImg:  {len(candidates)}')
 
-    if len(candidates) < 3:
-        add_u(candidates, from_google_images(query))
-        print(f'  After GoogleImg:  {len(candidates)}')
+        if len(candidates) < 2:
+            add_u(candidates, from_wikimedia(query))
+            print(f'  After Wikimedia:  {len(candidates)}')
 
-    if len(candidates) < 2:
-        add_u(candidates, from_wikimedia(query))
-        print(f'  After Wikimedia:  {len(candidates)}')
+    except Exception as e:
+        print(f'[find_images] Error: {e}')
 
-    # Dimension check — must be >= 500x350px
-    print(f'\n  Checking dimensions (min {MIN_W}x{MIN_H}px)...')
-    verified = []
-    for url in dedup_sort(candidates, 20):
-        if passes_dimension(url):
-            verified.append(url)
-        if len(verified) >= 8: break
-
-    print(f'  ✅ FINAL: {len(verified)} full-resolution images\n')
-    return verified
+    final = dedup_sort(candidates, 12)
+    print(f'  ✅ FINAL: {len(final)} images\n')
+    return final
 
 # ── ROUTES ───────────────────────────────────────────────────
 
@@ -460,6 +462,11 @@ def serve_index():
     except FileNotFoundError:
         return '<h2>index.html not found — upload it to your GitHub repo.</h2>', 404
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    print(f'[GLOBAL ERROR] {e}')
+    return jsonify({'error': str(e), 'images': []}), 200  # return 200 not 502
+
 @app.route('/api/rss')
 def proxy_rss():
     url = request.args.get('url','')
@@ -467,16 +474,20 @@ def proxy_rss():
         r = requests.get(url, headers=HEADERS, timeout=10)
         return Response(r.content, mimetype='text/xml')
     except Exception as e:
-        return jsonify({'error':str(e)}), 500
+        return jsonify({'error':str(e)}), 200
 
 @app.route('/api/search_image')
 def search_image():
-    query       = request.args.get('q','').strip()
-    article_url = request.args.get('article_url','').strip()
-    if not query:
-        return jsonify({'images':[],'error':'No query'}), 400
-    imgs = find_images(query, article_url)
-    return jsonify({'images':imgs,'count':len(imgs),'query':query})
+    try:
+        query       = request.args.get('q','').strip()
+        article_url = request.args.get('article_url','').strip()
+        if not query:
+            return jsonify({'images':[],'error':'No query'}), 200
+        imgs = find_images(query, article_url)
+        return jsonify({'images':imgs,'count':len(imgs),'query':query})
+    except Exception as e:
+        print(f'[search_image] ERROR: {e}')
+        return jsonify({'images':[],'error':str(e),'count':0}), 200
 
 @app.route('/api/proxy_image')
 def proxy_image():
@@ -517,21 +528,71 @@ def test():
                  f'<small style="word-break:break-all;color:#555;font-size:10px">{u}</small></div>')
     return html
 
-if __name__ == '__main__':
+@app.route('/api/topics', methods=['GET'])
+def get_topics():
+    """View current weekly motivation topics."""
+    try:
+        from scheduler import WEEKLY_TOPICS, get_todays_topic
+        return jsonify({'topics': WEEKLY_TOPICS, 'today': get_todays_topic()})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/topics', methods=['POST'])
+def set_topics():
+    """Update weekly topics. Body: {week: 1, topics: ['topic1','topic2',...]}"""
+    try:
+        from scheduler import update_topics
+        data = request.json
+        update_topics(data['week'], data['topics'])
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/logs')
+def get_logs():
+    """View last 100 lines of scheduler log."""
+    try:
+        with open('scheduler.log','r',encoding='utf-8') as f:
+            lines = f.readlines()[-100:]
+        return '<pre style="background:#111;color:#0f0;padding:20px;font-size:12px">' + ''.join(lines) + '</pre>'
+    except:
+        return '<pre>No logs yet.</pre>'
+
+@app.route('/api/post_now', methods=['POST'])
+def post_now():
+    """Manually trigger a post. Body: {page: 'EN_NEWS|KN_NEWS|EN_MOTI|KN_MOTI', type: 'deepdive|top10|motivation'}"""
+    try:
+        from scheduler import EN_NEWS, KN_NEWS, EN_MOTI, KN_MOTI
+        from scheduler import gen_deepdive, gen_top10, gen_motivation, do_post
+        data = request.json
+        pages = {'EN_NEWS':EN_NEWS,'KN_NEWS':KN_NEWS,'EN_MOTI':EN_MOTI,'KN_MOTI':KN_MOTI}
+        page = pages.get(data.get('page','EN_NEWS'))
+        ptype = data.get('type','deepdive')
+        cat   = data.get('category','India')
+        if ptype == 'deepdive':
+            content = gen_deepdive(page)
+        elif ptype == 'top10':
+            content = gen_top10(page, cat)
+        else:
+            content = gen_motivation(page)
+        do_post(page, content, ptype)
+        return jsonify({'ok': True, 'headline': content.get('headline', content.get('caption',''))[:100]})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
     try: import flask, flask_cors
     except ImportError:
         import subprocess
         subprocess.check_call([sys.executable,'-m','pip','install','flask','flask-cors','requests','Pillow'])
     import os
+    
+    # Start auto-posting scheduler in background
+    try:
+        from scheduler import start_scheduler
+        start_scheduler()
+        print('📅 Auto-scheduler started successfully')
+    except Exception as e:
+        print(f'⚠ Scheduler not started: {e}')
+
     port = int(os.environ.get('PORT', 5000))
-    print(f"""
-╔══════════════════════════════════════════════════════╗
-║  Auto-Poster v19 — Full Resolution Images            ║
-╠══════════════════════════════════════════════════════╣
-║  Pillow: {str(HAS_PIL):<44}║
-║  Running on port: {port:<34}║
-╠══════════════════════════════════════════════════════╣
-║  Test: http://localhost:{port}/api/test?q=Modi        ║
-╚══════════════════════════════════════════════════════╝
-""")
+    print(f'🚀 Backend running on port {port}')
     app.run(host='0.0.0.0', port=port, debug=False)
