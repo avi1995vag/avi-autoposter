@@ -597,38 +597,90 @@ function loadImg(url, cacheKey, ms=14000){
 /* ═══════════════════════════════════════════════════════════
    GEMINI API (ROBUST JSON EXTRACTION TO PREVENT CRASHES)
 ═══════════════════════════════════════════════════════════ */
-async function fetchFromGemini(prompt,useGrounding=true){
+async function fetchFromGemini(prompt, useGrounding=true, attempt=1){
   const key=document.getElementById('geminiKey').value.trim();
-  if(!key) throw new Error('Missing Gemini API Key.');
-  
+  if(!key) throw new Error('Missing Gemini API Key — paste it in the left panel.');
+
   const body={
     contents:[{parts:[{text:prompt}]}],
     generationConfig:{ temperature:0.2, maxOutputTokens:8192 }
   };
   if(useGrounding) body.tools=[{google_search:{}}];
 
-  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
-    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const data=await r.json();
-  if(data.error) throw new Error(data.error.message);
-  
-  let txt=data.candidates[0].content.parts[0].text;
-  
-  // Clean markdown to guarantee JSON parsing works
-  txt = txt.replace(/```json/gi, '').replace(/```/g, '').trim();
-  const start = txt.indexOf('{');
-  const end = txt.lastIndexOf('}');
-  if (start !== -1 && end !== -1) {
-      txt = txt.substring(start, end + 1);
+  let data;
+  try{
+    const r=await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),
+       signal:AbortSignal.timeout(90000)});
+    data=await r.json();
+  }catch(netErr){
+    if(attempt<=3){
+      log(`⚠ Network error — retrying (${attempt}/3)…`,'warn');
+      await new Promise(r=>setTimeout(r, attempt*5000));
+      return fetchFromGemini(prompt, useGrounding, attempt+1);
+    }
+    throw new Error(`Network error: ${netErr.message}`);
   }
-  
-  try{ 
-      return JSON.parse(txt); 
+
+  // Handle Gemini API errors
+  if(data.error){
+    const code=data.error.code||0;
+    const msg=data.error.message||'Unknown error';
+    // 429 = rate limit / overload — retry with backoff
+    if((code===429||msg.includes('high demand')||msg.includes('overload'))&&attempt<=4){
+      const wait=attempt*15000; // 15s, 30s, 45s, 60s
+      log(`⚠ Gemini busy — waiting ${wait/1000}s then retry (${attempt}/4)…`,'warn');
+      await new Promise(r=>setTimeout(r,wait));
+      return fetchFromGemini(prompt, useGrounding, attempt+1);
+    }
+    // 503 = service unavailable — retry
+    if((code===503||msg.includes('unavailable'))&&attempt<=3){
+      log(`⚠ Gemini unavailable — retrying (${attempt}/3)…`,'warn');
+      await new Promise(r=>setTimeout(r,10000));
+      return fetchFromGemini(prompt, useGrounding, attempt+1);
+    }
+    throw new Error(msg);
   }
-  catch(er){ 
-      console.error("FAILED JSON:", txt);
-      throw new Error('Gemini JSON parsing failed. Please try again.'); 
+
+  // Safe response extraction
+  const candidates=data.candidates||[];
+  if(!candidates.length) throw new Error('Gemini returned no candidates. Try again.');
+  const parts=candidates[0]?.content?.parts||[];
+  if(!parts.length) throw new Error('Gemini returned empty content. Try again.');
+  let txt=parts[0]?.text||'';
+  if(!txt) throw new Error('Gemini returned blank text. Try again.');
+
+  // Clean markdown and extract JSON
+  txt = txt.replace(/```json/gi,'').replace(/```/g,'').trim();
+  const start=txt.indexOf('{');
+  const end=txt.lastIndexOf('}');
+  if(start===-1||end===-1) throw new Error('Gemini did not return valid JSON. Try again.');
+  txt=txt.substring(start, end+1);
+
+  let parsed;
+  try{ parsed=JSON.parse(txt); }
+  catch(er){
+    console.error('FAILED JSON:', txt.slice(0,500));
+    if(attempt<=2){
+      log(`⚠ JSON parse failed — retrying (${attempt}/2)…`,'warn');
+      await new Promise(r=>setTimeout(r,5000));
+      return fetchFromGemini(prompt, useGrounding, attempt+1);
+    }
+    throw new Error('Gemini returned malformed JSON. Please try again.');
   }
+
+  // Validate slides array exists
+  if(!parsed.slides||!Array.isArray(parsed.slides)||parsed.slides.length===0){
+    if(attempt<=2){
+      log(`⚠ Gemini returned 0 slides — retrying (${attempt}/2)…`,'warn');
+      await new Promise(r=>setTimeout(r,5000));
+      return fetchFromGemini(prompt, useGrounding, attempt+1);
+    }
+    throw new Error('Gemini returned no slides. Please try again.');
+  }
+
+  return parsed;
 }
 
 function getLanguageInstruction(lang) {
@@ -682,7 +734,7 @@ MANDATORY LAYOUT RULES:
 
   try{
     const parsed=await fetchFromGemini(prompt,true);
-    slides=parsed.slides; currentLang=lang;
+    slides=(parsed.slides||[]).filter(s=>s&&s.id); if(!slides.length) throw new Error("No slides returned. Please try again."); currentLang=lang;
     assignCacheKeys(slides);
     imageCache={}; slideImageOverrides={};
     document.getElementById('caption').value=parsed.caption||''; updateCharCount();
@@ -765,13 +817,13 @@ STRICT RULES — READ CAREFULLY:
 
   try{
     const parsed=await fetchFromGemini(prompt,false);
-    slides=parsed.slides;
+    slides=(parsed.slides||[]).filter(s=>s&&s.id); if(!slides.length) throw new Error("No slides returned. Please try again.");
     assignCacheKeys(slides);
     imageCache={}; slideImageOverrides={};
     document.getElementById('caption').value=parsed.caption||''; updateCharCount();
     buildGrid();
     for(let i=0;i<slides.length;i++){
-      if(slides[i].layout!=='cta'&&slides[i].imageQuery){
+      if(slides[i]&&slides[i].layout!=='cta'&&slides[i].imageQuery){
         if(i>=1&&i<=8){ slides[i].articleUrl=top8[i-1]?.link||''; }
         const fallbackImg=(i>=1&&i<=8)?top8[i-1]?.extractedImage:null;
         await fetchSmartImage(slides[i],fallbackImg);
@@ -811,12 +863,12 @@ RULES:
 
   try{
     const parsed=await fetchFromGemini(prompt,true);
-    slides=parsed.slides;
+    slides=(parsed.slides||[]).filter(s=>s&&s.id); if(!slides.length) throw new Error("No slides returned. Please try again.");
     assignCacheKeys(slides);
     imageCache={}; slideImageOverrides={};
     document.getElementById('caption').value=parsed.caption||''; updateCharCount(); buildGrid();
     for(let i=0;i<slides.length;i++){
-      if(slides[i].layout!=='cta'&&slides[i].imageQuery){
+      if(slides[i]&&slides[i].layout!=='cta'&&slides[i].imageQuery){
         slides[i].articleUrl = article.link||'';
         await fetchSmartImage(slides[i], i===0?article.extractedImage:null);
         buildGrid();
@@ -869,20 +921,23 @@ CRITICAL imageQuery RULES — THIS IS USED TO SEARCH GOOGLE NEWS FOR THE PHOTO:
 
   try{
     const parsed=await fetchFromGemini(prompt,true);
-    slides=parsed.slides;
+    slides=(parsed.slides||[]).filter(s=>s&&s.id);
+    if(!slides.length) throw new Error('No slides returned. Please try again.');
     assignCacheKeys(slides);
     imageCache={}; slideImageOverrides={};
     document.getElementById('caption').value=parsed.caption||''; updateCharCount();
+    // Force slide 1 to magazine layout
+    if(slides[0]) slides[0].layout='magazine';
     buildGrid(grid);
     for(let i=0;i<slides.length;i++){
-      if(slides[i].layout!=='cta'&&slides[i].imageQuery){
+      if(slides[i]&&slides[i].layout!=='cta'&&slides[i].imageQuery){
         await fetchSmartImage(slides[i]); buildGrid(grid);
       }
     }
     log('🔴 Breaking Carousel complete!','ok');
   }catch(err){
     log(`Breaking failed: ${err.message}`,'err');
-    grid.innerHTML=`<div style="color:red;padding:20px;">Error: ${err.message}</div>`;
+    grid.innerHTML=`<div style="color:red;padding:20px;font-family:monospace">❌ ${err.message}<br><br>Please try again.</div>`;
   }
   setStatus('READY');
 }
