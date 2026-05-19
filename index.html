@@ -790,30 +790,44 @@ async function generateTop10NewsCarousel(){
   const lang=document.getElementById('newsLangSelect').value; currentLang=lang;
   log('🔥 Building Top 10 News Carousel…'); setStatus('BUILDING');
 
-  const top8=latestNews.slice(0,8);
-  const prompt=`You are an ELITE Global News Editor. Transform these 8 headlines into a 10-slide Instagram carousel.
+  // Deduplicate: remove headlines that share 3+ words with an earlier one
+  function areSimilar(a, b){
+    const wa=new Set(a.toLowerCase().split(/\s+/).filter(w=>w.length>3));
+    const wb=b.toLowerCase().split(/\s+/).filter(w=>w.length>3);
+    return wb.filter(w=>wa.has(w)).length >= 3;
+  }
+  const unique=[];
+  for(const item of latestNews){
+    const title=(item.title||'').split(' - ')[0];
+    if(!unique.some(u=>areSimilar(u.title, title))){
+      unique.push({...item, title});
+      if(unique.length>=8) break;
+    }
+  }
+  const top8=unique.slice(0,8);
+  log(`📰 ${top8.length} unique stories selected (deduped from ${latestNews.length})`);
+
+  const prompt=`You are an ELITE Global News Editor. Transform these ${top8.length} DIFFERENT headlines into a 10-slide Instagram carousel.
 LANGUAGE: ${lang}
 ${getLanguageInstruction(lang)}
 
-HEADLINES (each one must become exactly ONE slide):
-${top8.map((n,i)=>`${i+1}. ${n.title.split(' - ')[0]}`).join('\n')}
+HEADLINES — each is a COMPLETELY DIFFERENT story, one per slide:
+${top8.map((n,i)=>`${i+1}. ${n.title}`).join('\n')}
 
 OUTPUT FORMAT (RAW VALID JSON ONLY. NO MARKDOWN):
 {"caption":"...","slides":[{"id":1,"layout":"magazine","title":"...","body":"...","imageQuery":"...","category":"...","ticker":"...","location":"...","source":"..."}]}
 
-STRICT RULES — READ CAREFULLY:
-- Slide 1: layout="magazine". title: MAX 6 WORDS, punchy hook covering today's biggest stories. body: EXACTLY 20-25 words summarising all 8 stories. category: creative (e.g. "TOP STORIES", "DAILY BRIEFING"). ticker: today's date (e.g. "18 MAY 2026"). imageQuery: best story's main person + action + year.
-- Slides 2-9: layout="news-card". ONE slide = ONE headline ONLY. NEVER combine two stories in one slide.
-  - Slide 2 = Headline 1, Slide 3 = Headline 2, ..., Slide 9 = Headline 8
-  - title: headline shortened to max 8 words
-  - body: 2-sentence context, max 25 words total
-  - category: CREATIVE category matching this story's type: "CRIME", "HUMAN INTEREST", "POLITICS", "ELECTION", "ECONOMY", "SPORTS", "CRICKET", "TECH", "HEALTH", "ENVIRONMENT", "SOCIAL", "VERDICT", "WAR", "PARLIAMENT", "TERROR", "BREAKING" — pick the BEST match
-  - ticker: district or state or country relevant to THIS story (e.g. "KERALA", "NEW DELHI", "KARNATAKA", "BENGALURU", "INDIA", "GLOBAL")
-  - location: same as ticker
-  - source: news source name
-  - imageQuery: EXACT FULL NAME of person in story + specific action + year (e.g. "VD Satheesan sworn in Kerala CM 2026")
-- Slide 10: layout="cta".
-- EXACTLY 10 slides total. No slide combines multiple stories.`;
+STRICT RULES:
+- Slide 1: layout="magazine". title: MAX 6 WORDS hook. body: EXACTLY 20-25 words summary of all stories. ticker: today's date. imageQuery: biggest story's main person + action + year.
+- Slides 2-9: layout="news-card". ONE slide = ONE headline. NEVER repeat a story. NEVER combine two stories.
+  Slide 2=Story 1, Slide 3=Story 2, ..., Slide 9=Story 8.
+  - title: max 8 words
+  - body: 2 sentences, max 25 words
+  - category: pick BEST match — CRIME|HUMAN INTEREST|POLITICS|ELECTION|ECONOMY|SPORTS|CRICKET|TECH|HEALTH|ENVIRONMENT|SOCIAL|VERDICT|WAR|PARLIAMENT|TERROR|BREAKING
+  - ticker: specific district/state/country of THIS story only
+  - imageQuery: EXACT FULL NAME + action + year. E.g. "Shubman Gill India captain press conference 2026". NEVER generic like "politician" or "cricket player".
+- Slide 10: layout="cta"
+- EXACTLY 10 slides. Every slide covers a DIFFERENT topic/story.`;
 
   try{
     const parsed=await fetchFromGemini(prompt,false);
