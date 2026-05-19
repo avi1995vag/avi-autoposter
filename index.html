@@ -183,7 +183,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
 <div class="col col-mid">
   
   <div style="background:rgba(88,101,242,.1);border:1px solid var(--accent);padding:10px;border-radius:10px;margin-bottom:15px;font-size:11px;">
-    <strong>Backend Status:</strong> To enable robust Google Image Search & bypass CORS, ensure <code>run.bat</code> is running in the background!
+    <strong>Backend Status:</strong> Backend running on Render ✅ — Real news images active.
   </div>
 
   <!-- CAROUSEL PANEL -->
@@ -456,7 +456,7 @@ async function fetchRSSWithProxy(rssUrl) {
         const items = xml.querySelectorAll('item');
         if (items.length > 0) return parseXMLItems(items);
     }
-  } catch(e) { log(`Local RSS proxy failed (is run.bat running?): ${e.message}`,'warn'); }
+  } catch(e) { log(`RSS proxy failed: ${e.message}`,'warn'); }
 
   try {
     const r = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=15`);
@@ -536,7 +536,7 @@ async function fetchSmartImage(slide, fallbackNewsUrl=null){
     }
     log(`[S${slide.id}] ❌ ${imgList.length} URLs found but all failed proxy. Slide shows gradient.`,'err');
   }catch(e){
-    log(`[S${slide.id}] ❌ Backend unreachable — is run.bat running?`,'err');
+    log(`[S${slide.id}] ❌ Backend unreachable — check Render deployment`,'err');
   }
   return null;
 }
@@ -1259,7 +1259,7 @@ function drawImpact(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
   ctx.fillStyle=th.accent; ctx.fillRect(W*0.55,0,W*0.45,H);
   if(img){ ctx.save(); ctx.beginPath(); ctx.rect(W*0.55,0,W*0.45,H); ctx.clip(); ctx.globalAlpha=0.18; drawImgCover(ctx,img,W*0.55,0,W*0.45,H); ctx.globalAlpha=1; ctx.restore(); }
   let cy=310; cy=wrapText(ctx,slide.title,58,cy,W*0.42,90,`900 68px ${TF}`,'#ffffff');
-  wrapText(ctx,slide.body,W*0.58+30,H*0.42,W*0.38,58,`600 38px ${BF}`,'rgba(255,255,255,0.95)');
+  wrapText(ctx,slide.body,W*0.58+30,H*0.28,W*0.38,58,`600 38px ${BF}`,'rgba(255,255,255,0.95)');
   drawFooterDark(ctx,th,W,H,isLast,TF,BF);
 }
 
