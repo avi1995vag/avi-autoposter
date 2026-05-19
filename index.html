@@ -487,13 +487,17 @@ function extractImg(html){ const m=html.match(/<img[^>]+src=["']([^"']+)["']/i);
    REAL IMAGE FETCHING — 8 SOURCES, ZERO API KEYS, NO AI
 ═══════════════════════════════════════════════════════════ */
 function cleanSearchQuery(q) {
-  return q.replace(/[^\w\s\-]/g,'').trim().slice(0, 80);
+  return (q||'').replace(/[^\w\s\-]/g,'').trim().slice(0, 80);
 }
 
 function buildImageQuery(slide){
-  const base = cleanSearchQuery(slide.imageQuery || slide.title || '');
-  const cat  = (slide.category||'').replace(/BREAKING|NEWS/gi,'').trim();
-  return (base + (cat ? ' '+cat : '')).trim().slice(0,80);
+  // Use imageQuery directly — already specific (person+action+year)
+  return cleanSearchQuery(slide.imageQuery || slide.title || '').slice(0,80);
+}
+
+// Wake up Render backend if sleeping
+async function wakeBackend(){
+  try{ await fetch('/api/test?q=ping', {signal: AbortSignal.timeout(12000)}); }catch(e){}
 }
 
 async function fetchSmartImage(slide, fallbackNewsUrl=null){
@@ -504,11 +508,11 @@ async function fetchSmartImage(slide, fallbackNewsUrl=null){
   const richQ = buildImageQuery(slide);
   if(!richQ) return null;
 
-  // Try RSS article image first (direct embed — best match)
+  // Try RSS article image first (most relevant)
   if(fallbackNewsUrl){
     try{
       const proxyUrl = `/api/proxy_image?url=${encodeURIComponent(fallbackNewsUrl)}`;
-      const img = await loadImg(proxyUrl, cacheKey, 8000);
+      const img = await loadImg(proxyUrl, cacheKey, 12000);
       log(`✅ [S${slide.id}] RSS article photo loaded.`,'ok');
       return img;
     }catch(e){
@@ -516,28 +520,54 @@ async function fetchSmartImage(slide, fallbackNewsUrl=null){
     }
   }
 
-  // Backend search — 8 real sources, zero API keys
-  log(`[S${slide.id}] 🔍 Searching: "${richQ}"`);
-  try {
-    // Pass article_url if slide has one (for direct article scraping)
-    const articleParam = slide.articleUrl ? `&article_url=${encodeURIComponent(slide.articleUrl)}` : '';
-    const res = await fetch(`/api/search_image?q=${encodeURIComponent(richQ)}${articleParam}`);
-    const data = await res.json();
-    const imgList = data.images || [];
-    log(`[S${slide.id}] Backend: ${imgList.length} real images`);
+  // Try full query first, then shorter fallback query
+  const queries = [richQ];
+  const shortQ = richQ.split(' ').slice(0,3).join(' ');
+  if(shortQ.length > 3 && shortQ !== richQ) queries.push(shortQ);
 
-    for(const imgUrl of imgList.slice(0,12)){
+  for(const q of queries){
+    log(`[S${slide.id}] 🔍 Searching: "${q}"`);
+    try {
+      const articleParam = slide.articleUrl ? `&article_url=${encodeURIComponent(slide.articleUrl)}` : '';
+      // 55s timeout — Render free tier can take 30-50s to wake from sleep
+      const controller = new AbortController();
+      const timer = setTimeout(()=>controller.abort(), 55000);
+      let res;
       try{
-        const proxyUrl = `/api/proxy_image?url=${encodeURIComponent(imgUrl)}`;
-        const img = await loadImg(proxyUrl, cacheKey, 10000);
-        log(`✅ [S${slide.id}] Real image loaded.`,'ok');
-        return img;
-      }catch(e){}
+        res = await fetch(`/api/search_image?q=${encodeURIComponent(q)}${articleParam}`, {signal: controller.signal});
+      }catch(fetchErr){
+        clearTimeout(timer);
+        if(fetchErr.name==='AbortError'){
+          log(`[S${slide.id}] ⚠ Timeout 55s — waking backend…`,'warn');
+          await wakeBackend();
+          // One more try after wake
+          res = await fetch(`/api/search_image?q=${encodeURIComponent(q)}${articleParam}`);
+        } else { throw fetchErr; }
+      }
+      clearTimeout(timer);
+
+      if(!res || !res.ok) throw new Error(`HTTP ${res?.status}`);
+      const data = await res.json();
+      const imgList = data.images || [];
+      log(`[S${slide.id}] Backend: ${imgList.length} images`);
+
+      for(const imgUrl of imgList.slice(0,12)){
+        try{
+          const proxyUrl = `/api/proxy_image?url=${encodeURIComponent(imgUrl)}`;
+          const img = await loadImg(proxyUrl, cacheKey, 15000);
+          log(`✅ [S${slide.id}] Real image loaded.`,'ok');
+          return img;
+        }catch(e){}
+      }
+      if(imgList.length > 0){
+        log(`[S${slide.id}] ⚠ ${imgList.length} found, all failed to load — trying shorter query…`,'warn');
+      }
+    }catch(e){
+      log(`[S${slide.id}] ⚠ Search error: ${e.message}`,'warn');
     }
-    log(`[S${slide.id}] ❌ ${imgList.length} URLs found but all failed proxy. Slide shows gradient.`,'err');
-  }catch(e){
-    log(`[S${slide.id}] ❌ Backend unreachable — check Render deployment`,'err');
   }
+
+  log(`[S${slide.id}] ❌ No image after all attempts. Slide shows gradient.`,'err');
   return null;
 }
 
@@ -648,7 +678,7 @@ MANDATORY LAYOUT RULES:
 - Remaining slides: mix of [split, text-focus, minimal, dateline, impact, news-card]
 - EXACTLY ${count} slides. Titles max 8 words. Bodies max 30 words.
 - layout="chart-bar": include "chartData" array with 3-5 items [{label,value}]. Values must be numbers.
-- imageQuery: Write the EXACT FULL NAME of the specific person on this slide + their specific action + year. E.g. "Virat Kohli batting IPL 2026", "Narendra Modi inaugurates Ram Mandir Ayodhya 2025". NEVER write generic words like "politician" or "leader". Each slide must have a DIFFERENT query.`;
+- imageQuery: EXACT FULL NAME + specific action + place + year. E.g. "Virat Kohli batting MI vs CSK IPL 2026". NEVER: "politician", "leader", "player", "sports event", "cricket match". Each slide DIFFERENT query.`;
 
   try{
     const parsed=await fetchFromGemini(prompt,true);
@@ -772,7 +802,12 @@ RULES:
 - Slide 5: layout="stats". body: EXACTLY 5 bullet points, each 3-4 words only, use \\n between them.
 - Slide 7: layout="timeline". body: EXACTLY 5 items, 3-4 words each, use \\n between them.
 - Slide 10: layout="cta". Rest: layout="news-card".
-- imageQuery: EXACT FULL NAME of person on this slide + their specific action + location + year. E.g. "VD Satheesan taking oath Chief Minister Kerala 2026". WRONG: "Kerala CM", "new leader". Each slide different query targeting THAT slide's person/scene.`;
+- imageQuery rules (CRITICAL — this is used to find the real photo):
+- Write EXACT FULL NAME of the specific person + what they are doing + where + year
+- GOOD: "Shubman Gill batting India vs England Test 2026", "Rahul Gandhi press conference New Delhi 2026"  
+- BAD: "Indian cricket", "politician speaking", "cricket fans", "sports event" — these return wrong photos
+- For non-person slides (economy, environment): write specific event + place + year e.g. "Bengaluru flood rescue operation 2026"
+- Every slide must have a DIFFERENT imageQuery`;
 
   try{
     const parsed=await fetchFromGemini(prompt,true);
@@ -1259,7 +1294,7 @@ function drawImpact(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
   ctx.fillStyle=th.accent; ctx.fillRect(W*0.55,0,W*0.45,H);
   if(img){ ctx.save(); ctx.beginPath(); ctx.rect(W*0.55,0,W*0.45,H); ctx.clip(); ctx.globalAlpha=0.18; drawImgCover(ctx,img,W*0.55,0,W*0.45,H); ctx.globalAlpha=1; ctx.restore(); }
   let cy=310; cy=wrapText(ctx,slide.title,58,cy,W*0.42,90,`900 68px ${TF}`,'#ffffff');
-  wrapText(ctx,slide.body,W*0.58+30,H*0.28,W*0.38,58,`600 38px ${BF}`,'rgba(255,255,255,0.95)');
+  wrapText(ctx,slide.body,W*0.58+30,H*0.42,W*0.38,58,`600 38px ${BF}`,'rgba(255,255,255,0.95)');
   drawFooterDark(ctx,th,W,H,isLast,TF,BF);
 }
 
@@ -1555,7 +1590,16 @@ async function downloadAllSlides(){
   }catch(err){ log(`Download error: ${err.message}`,'err'); }
 }
 
-window.onload=loadSettings;
+window.onload = async function(){
+  loadSettings();
+  // Check if backend is awake
+  try{
+    const r = await fetch('/api/test?q=ping', {signal: AbortSignal.timeout(5000)});
+    if(r.ok) log('✅ Backend ready.','ok');
+  }catch(e){
+    log('⚠ Backend is waking up (Render free tier) — first image search may take 30-50s. Please wait…','warn');
+  }
+};
 </script>
 </body>
 </html>
