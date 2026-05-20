@@ -138,6 +138,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
     <div style="font-size:10px;color:var(--muted);margin-top:3px;">Needs <b>pages_show_list</b> + <b>instagram_basic</b> + <b>instagram_content_publish</b> + <b>pages_manage_posts</b><br>Use a <b>User Token</b> from Meta Business Suite → click AUTH to auto-detect your IG account</div>
   </div>
   <div class="field"><label>Instagram Business Account ID</label><input id="userId" type="text" placeholder="Auto-filled after AUTH…"></div>
+  <input type="hidden" id="userToken"><!-- stores original user token for FB page lookup -->
   <div class="row">
     <div class="field"><label>Cloudinary Name</label><input id="cloudName" placeholder="my-cloud"></div>
     <div class="field"><label>Upload Preset (unsigned)</label><input id="uploadPreset" placeholder="preset"></div>
@@ -404,14 +405,14 @@ function setTheme(k){ activeTheme=k; document.querySelectorAll('.theme-chip').fo
 function updateCharCount(){ document.getElementById('charCount').textContent=document.getElementById('caption').value.length; }
 
 function saveSettings(){
-  ['userId','accessToken','cloudName','uploadPreset','geminiKey','handleText'].forEach(k=>{
+  ['userId','accessToken','userToken','cloudName','uploadPreset','geminiKey','handleText'].forEach(k=>{
     const el=document.getElementById(k); if(el) localStorage.setItem('app_'+k,el.value);
   });
   localStorage.setItem('app_theme',activeTheme);
   log('✅ Config saved.','ok');
 }
 function loadSettings(){
-  ['userId','accessToken','cloudName','uploadPreset','geminiKey','handleText'].forEach(k=>{
+  ['userId','accessToken','userToken','cloudName','uploadPreset','geminiKey','handleText'].forEach(k=>{
     const v=localStorage.getItem('app_'+k); const el=document.getElementById(k); if(v&&el) el.value=v;
   });
   const t=localStorage.getItem('app_theme'); if(t) setTheme(t);
@@ -1470,7 +1471,9 @@ async function verifyToken(){
         const r3=await fetch(`https://graph.facebook.com/v21.0/${igId}?fields=id,username,name&access_token=${pageToken}`);
         const d3=await r3.json();
         document.getElementById('userId').value=igId;
-        // Store page token separately (IG API needs page token, not user token)
+        // Save original user token for Facebook page lookup later
+        document.getElementById('userToken').value=token;
+        // Store page token (IG API needs page token, not user token)
         document.getElementById('accessToken').value=pageToken;
         log(`✅ Instagram Business: @${d3.username||igId} (ID: ${igId})`,'ok');
         log(`✅ Using Page Token for: ${page.name}`,'ok');
@@ -1565,7 +1568,9 @@ async function handleFBRun(){
 
   try{
     // 1. Get Facebook Page ID and Page Token
-    const meRes=await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${token}`);
+    // Use original user token (page token can't access /me/accounts)
+    const fbUserToken=document.getElementById('userToken').value||token;
+    const meRes=await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${fbUserToken}`);
     const meData=await meRes.json();
     if(meData.error) throw new Error(meData.error.message);
     const page=meData.data?.[0];
@@ -1693,7 +1698,9 @@ async function deployBoth(){
     // ── Facebook ───────────────────────────────────────────
     log('📘 Posting to Facebook…');
     try{
-      const meRes=await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${token}`);
+      // Use original user token for accounts lookup (page token doesn't have accounts access)
+      const fbUserToken=document.getElementById('userToken').value||token;
+      const meRes=await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${fbUserToken}`);
       const meData=await meRes.json();
       if(meData.error) throw new Error(meData.error.message);
       const page=meData.data?.[0];
