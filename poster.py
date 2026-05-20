@@ -134,34 +134,52 @@ def gemini(prompt, use_search=True, attempt=1):
     }
     if use_search:
         body['tools'] = [{'google_search': {}}]
-    try:
-        r = requests.post(
-            f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_KEY}',
-            json=body, timeout=90
-        )
-        data = r.json()
-        if 'error' in data:
-            code = data['error'].get('code', 0)
-            msg  = data['error'].get('message', '')
-            if (code == 429 or 'demand' in msg or 'quota' in msg) and attempt <= 4:
-                wait = attempt * 20
-                log(f'⚠ Gemini busy — waiting {wait}s (attempt {attempt}/4)…')
-                time.sleep(wait)
+
+    # Try gemini-2.5-flash first, fallback to 2.0-flash
+    models = ['gemini-2.5-flash', 'gemini-2.0-flash']
+    last_error = None
+
+    for model in models:
+        try:
+            r = requests.post(
+                f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={GEMINI_KEY}',
+                json=body, timeout=90
+            )
+            data = r.json()
+            if 'error' in data:
+                code = data['error'].get('code', 0)
+                msg  = data['error'].get('message', '')
+                if code == 429 or 'quota' in msg.lower() or 'demand' in msg.lower():
+                    if attempt <= 3:
+                        wait = attempt * 20
+                        log(f'⚠ {model} quota — waiting {wait}s (attempt {attempt}/3)…')
+                        time.sleep(wait)
+                        return gemini(prompt, use_search, attempt + 1)
+                    log(f'⚠ {model} quota exhausted — trying next model…')
+                    last_error = msg
+                    continue  # try next model
+                raise Exception(f"Gemini error: {msg}")
+            raw = data['candidates'][0]['content']['parts'][0]['text']
+            raw = re.sub(r'^```json\s*', '', raw.strip())
+            raw = re.sub(r'```\s*$', '', raw.strip())
+            start, end = raw.find('{'), raw.rfind('}')
+            if start == -1 or end == -1:
+                raise Exception("No JSON in response")
+            result = json.loads(raw[start:end+1])
+            log(f'✅ Generated with {model}')
+            return result
+        except json.JSONDecodeError:
+            if attempt <= 2:
+                time.sleep(10)
                 return gemini(prompt, use_search, attempt + 1)
-            raise Exception(f"Gemini error: {msg}")
-        raw = data['candidates'][0]['content']['parts'][0]['text']
-        raw = re.sub(r'^```json\s*', '', raw.strip())
-        raw = re.sub(r'```\s*$', '', raw.strip())
-        start, end = raw.find('{'), raw.rfind('}')
-        if start == -1 or end == -1:
-            raise Exception("No JSON in response")
-        return json.loads(raw[start:end+1])
-    except json.JSONDecodeError:
-        if attempt <= 2:
-            log(f'⚠ JSON parse error — retrying…')
-            time.sleep(10)
-            return gemini(prompt, use_search, attempt + 1)
-        raise Exception("Gemini returned invalid JSON")
+            raise Exception("Gemini returned invalid JSON")
+        except Exception as e:
+            if 'quota' not in str(e).lower():
+                raise
+            last_error = str(e)
+            continue
+
+    raise Exception(f"All Gemini models quota exceeded. {last_error}")
 
 # ─────────────────────────────────────────────────────────────
 #  CONTENT GENERATORS
