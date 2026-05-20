@@ -450,18 +450,30 @@ document.getElementById('avatarUpload').addEventListener('change',e=>{
    RSS / NEWS FETCH
 ═══════════════════════════════════════════════════════════ */
 async function fetchRSSWithProxy(rssUrl) {
-  try {
-    const r = await fetch(`https://avi-autoposter.onrender.com/api/rss?url=${encodeURIComponent(rssUrl)}`);
-    if(r.ok) {
-        const txt = await r.text();
-        const xml = new DOMParser().parseFromString(txt,'text/xml');
-        const items = xml.querySelectorAll('item');
-        if (items.length > 0) return parseXMLItems(items);
-    }
-  } catch(e) { log(`RSS proxy failed: ${e.message}`,'warn'); }
+  // Wake Render backend first if sleeping
+  try{
+    await fetch('https://avi-autoposter.onrender.com/api/test?q=ping',
+      {signal: AbortSignal.timeout(15000)});
+  }catch(e){}
 
+  // Try Render proxy
   try {
-    const r = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=15`);
+    const r = await fetch(
+      `https://avi-autoposter.onrender.com/api/rss?url=${encodeURIComponent(rssUrl)}`,
+      {signal: AbortSignal.timeout(30000)});
+    if(r.ok) {
+      const txt = await r.text();
+      const xml = new DOMParser().parseFromString(txt,'text/xml');
+      const items = xml.querySelectorAll('item');
+      if (items.length > 0) return parseXMLItems(items);
+    }
+  } catch(e) { log(`RSS proxy failed: ${e.message} — trying direct…`,'warn'); }
+
+  // Fallback: rss2json
+  try {
+    const r = await fetch(
+      `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=15`,
+      {signal: AbortSignal.timeout(15000)});
     const d = await r.json();
     if (d.status==='ok' && d.items?.length > 0) {
       return d.items.map(i=>({
@@ -470,7 +482,19 @@ async function fetchRSSWithProxy(rssUrl) {
         extractedImage:i.enclosure?.link||i.thumbnail||extractImg(i.description||'')
       }));
     }
+  } catch(e) { log(`rss2json failed: ${e.message}`,'warn'); }
+
+  // Last fallback: direct fetch
+  try {
+    const r = await fetch(rssUrl, {signal: AbortSignal.timeout(10000)});
+    if(r.ok){
+      const txt = await r.text();
+      const xml = new DOMParser().parseFromString(txt,'text/xml');
+      const items = xml.querySelectorAll('item');
+      if(items.length > 0) return parseXMLItems(items);
+    }
   } catch(e) {}
+
   return [];
 }
 
@@ -1789,30 +1813,32 @@ async function runAutopilotCycle(){
   }
   log(`🤖 Auto: ${cat.type.toUpperCase()} — ${cat.topic}`,'warn');
   try{
+    slides=[]; imageCache={}; // clear previous
+
     if(cat.type === 'news'){
-      // Set the region/topic dropdown to match
-      const regionSel = document.getElementById('newsRegionSelect');
-      if(regionSel){
-        // Find the option that matches
-        for(let opt of regionSel.options){
-          if(opt.text.includes(cat.topic) || opt.value.includes(cat.topic)){
-            regionSel.value = opt.value;
-            break;
-          }
-        }
-      }
       switchMode('news');
+      log('📡 Fetching news…');
       await fetchLiveNews();
+      if(!latestNews.length){
+        throw new Error('No news fetched — check network/backend');
+      }
+      log(`✅ ${latestNews.length} articles fetched`,'ok');
       await generateTop10NewsCarousel();
     } else {
-      // Motivation — use AI carousel
       const topicEl = document.getElementById('aiTopic');
       if(topicEl) topicEl.value = cat.topic;
-      const langEl = document.getElementById('aiLanguage');
-      if(langEl) currentLang = langEl.value;
+      const countEl = document.getElementById('slideCount');
+      if(countEl) countEl.value = '7';
       switchMode('carousel');
       await generateAI();
     }
+
+    // Verify slides were actually generated
+    if(!slides || slides.length === 0){
+      throw new Error('No slides generated — cannot post');
+    }
+    log(`✅ ${slides.length} slides ready — deploying…`,'ok');
+
     await deployBoth();
     log(`✅ Posted: ${cat.topic}`,'ok');
     log(`📅 Next: ${getNextSlotTime()}`);
