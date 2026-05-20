@@ -451,7 +451,7 @@ document.getElementById('avatarUpload').addEventListener('change',e=>{
 ═══════════════════════════════════════════════════════════ */
 async function fetchRSSWithProxy(rssUrl) {
   try {
-    const r = await fetch(`/api/rss?url=${encodeURIComponent(rssUrl)}`);
+    const r = await fetch(`https://avi-autoposter.onrender.com/api/rss?url=${encodeURIComponent(rssUrl)}`);
     if(r.ok) {
         const txt = await r.text();
         const xml = new DOMParser().parseFromString(txt,'text/xml');
@@ -499,7 +499,7 @@ function buildImageQuery(slide){
 
 // Wake up Render backend if sleeping
 async function wakeBackend(){
-  try{ await fetch('/api/test?q=ping', {signal: AbortSignal.timeout(12000)}); }catch(e){}
+  try{ await fetch('https://avi-autoposter.onrender.com/api/test?q=ping', {signal: AbortSignal.timeout(12000)}); }catch(e){}
 }
 
 async function fetchSmartImage(slide, fallbackNewsUrl=null){
@@ -513,7 +513,7 @@ async function fetchSmartImage(slide, fallbackNewsUrl=null){
   // Try RSS article image first (most relevant)
   if(fallbackNewsUrl){
     try{
-      const proxyUrl = `/api/proxy_image?url=${encodeURIComponent(fallbackNewsUrl)}`;
+      const proxyUrl = `https://avi-autoposter.onrender.com/api/proxy_image?url=${encodeURIComponent(fallbackNewsUrl)}`;
       const img = await loadImg(proxyUrl, cacheKey, 12000);
       log(`✅ [S${slide.id}] RSS article photo loaded.`,'ok');
       return img;
@@ -536,14 +536,14 @@ async function fetchSmartImage(slide, fallbackNewsUrl=null){
       const timer = setTimeout(()=>controller.abort(), 55000);
       let res;
       try{
-        res = await fetch(`/api/search_image?q=${encodeURIComponent(q)}${articleParam}`, {signal: controller.signal});
+        res = await fetch(`https://avi-autoposter.onrender.com/api/search_image?q=${encodeURIComponent(q)}${articleParam}`, {signal: controller.signal});
       }catch(fetchErr){
         clearTimeout(timer);
         if(fetchErr.name==='AbortError'){
           log(`[S${slide.id}] ⚠ Timeout 55s — waking backend…`,'warn');
           await wakeBackend();
           // One more try after wake
-          res = await fetch(`/api/search_image?q=${encodeURIComponent(q)}${articleParam}`);
+          res = await fetch(`https://avi-autoposter.onrender.com/api/search_image?q=${encodeURIComponent(q)}${articleParam}`);
         } else { throw fetchErr; }
       }
       clearTimeout(timer);
@@ -555,7 +555,7 @@ async function fetchSmartImage(slide, fallbackNewsUrl=null){
 
       for(const imgUrl of imgList.slice(0,12)){
         try{
-          const proxyUrl = `/api/proxy_image?url=${encodeURIComponent(imgUrl)}`;
+          const proxyUrl = `https://avi-autoposter.onrender.com/api/proxy_image?url=${encodeURIComponent(imgUrl)}`;
           const img = await loadImg(proxyUrl, cacheKey, 15000);
           log(`✅ [S${slide.id}] Real image loaded.`,'ok');
           return img;
@@ -967,7 +967,7 @@ async function applyUrlOverride(){
   if(!url){ log('ERR: Paste a valid image URL.','err'); return; }
   const s=slides[selectedSlide]; log(`🖼️ Loading image from URL via proxy…`);
   try{
-    const proxyUrl = `/api/proxy_image?url=${encodeURIComponent(url)}`;
+    const proxyUrl = `https://avi-autoposter.onrender.com/api/proxy_image?url=${encodeURIComponent(url)}`;
     const img=await loadImg(proxyUrl, s.cacheKey, 15000);
     slideImageOverrides[s.cacheKey]=img;
     document.getElementById('overridePreview').src=url;
@@ -983,7 +983,7 @@ function previewOverrideUrl(){
     const el=document.getElementById('overridePreview');
     const testImg=new Image(); testImg.crossOrigin='Anonymous';
     testImg.onload=()=>el.src=url; testImg.onerror=()=>el.src='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-    testImg.src=`/api/proxy_image?url=${encodeURIComponent(url)}`;
+    testImg.src=`https://avi-autoposter.onrender.com/api/proxy_image?url=${encodeURIComponent(url)}`;
   },700);
 }
 
@@ -1827,7 +1827,7 @@ window.onload = async function(){
   loadSettings();
   // Check if backend is awake
   try{
-    const r = await fetch('/api/test?q=ping', {signal: AbortSignal.timeout(5000)});
+    const r = await fetch('https://avi-autoposter.onrender.com/api/test?q=ping', {signal: AbortSignal.timeout(5000)});
     if(r.ok) log('✅ Backend ready.','ok');
   }catch(e){
     log('⚠ Backend is waking up (Render free tier) — first image search may take 30-50s. Please wait…','warn');
