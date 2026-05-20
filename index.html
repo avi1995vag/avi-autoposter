@@ -780,15 +780,63 @@ MANDATORY LAYOUT RULES:
    LIVE NEWS
 ═══════════════════════════════════════════════════════════ */
 async function fetchLiveNews(){
-  const feed=document.getElementById('newsFeedSelect').value;
-  setStatus('FETCHING'); log(`📡 Fetching ${feed} news…`);
-  let articles=[];
-  for(const url of NEWS_SOURCES[feed]||[]){
-    articles=await fetchRSSWithProxy(url);
-    if(articles.length>0){ log(`✅ Retrieved ${articles.length} articles.`,'ok'); break; }
+  const feed = document.getElementById('newsFeedSelect').value;
+  const feedNames = {
+    'INDIA':'India Top News', 'KARNATAKA':'Karnataka News',
+    'BENGALURU':'Bengaluru News', 'POLITICS':'Indian Politics',
+    'BUSINESS':'Business & Economy', 'SPORTS':'Sports & Cricket',
+    'AITECH':'AI & Technology', 'GLOBAL':'Global News'
+  };
+  const topic = feedNames[feed] || 'India Top News';
+  setStatus('FETCHING');
+  log(`📡 Fetching ${topic} via Gemini Search…`);
+
+  const key = document.getElementById('geminiKey').value.trim();
+  if(!key){ log('ERR: Gemini API key required','err'); return; }
+
+  try{
+    const prompt = `Search Google News RIGHT NOW for the latest ${topic} stories from the last 24 hours.
+Return RAW JSON only — no markdown:
+{"articles":[{"title":"headline","description":"2 sentence summary","source":"news source name","pubDate":"today","link":"article url if known"}]}
+Return exactly 10-12 different news articles. All must be DIFFERENT stories. Real news only.`;
+
+    const body = {
+      contents:[{parts:[{text:prompt}]}],
+      generationConfig:{temperature:0.3, maxOutputTokens:2000},
+      tools:[{google_search:{}}]
+    };
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+      {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+       signal: AbortSignal.timeout(45000)});
+    const data = await r.json();
+    if(data.error) throw new Error(data.error.message);
+
+    let raw = data.candidates[0].content.parts[0].text;
+    raw = raw.replace(/```json/gi,'').replace(/```/g,'').trim();
+    const s = raw.indexOf('{'), e = raw.lastIndexOf('}');
+    const parsed = JSON.parse(raw.substring(s, e+1));
+    const articles = parsed.articles || [];
+
+    if(!articles.length) throw new Error('No articles returned');
+
+    // Convert to latestNews format
+    latestNews = articles.map(a=>({
+      title: a.title,
+      description: a.description || '',
+      source: a.source || 'Live News',
+      pubDate: a.pubDate || new Date().toISOString(),
+      link: a.link || '',
+      extractedImage: null
+    }));
+
+    log(`✅ ${latestNews.length} articles fetched via Gemini Search`,'ok');
+    renderNewsResults(latestNews);
+    setStatus('READY');
+  }catch(err){
+    log(`❌ News fetch failed: ${err.message}`,'err');
+    setStatus('ERROR');
   }
-  if(!articles.length){ log('❌ No news found. Check backend or network.','err'); setStatus('ERROR'); return; }
-  latestNews=articles; renderNewsResults(latestNews); setStatus('READY');
 }
 
 function renderNewsResults(articles){
