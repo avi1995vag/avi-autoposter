@@ -677,38 +677,54 @@ async function fetchLiveNews(){
   setStatus('FETCHING'); log(`📡 Fetching ${topic} via Gemini Search…`);
   const key=document.getElementById('geminiKey').value.trim();
   if(!key){ log('ERR: Gemini API key required','err'); return; }
-  try{
-    const prompt2=`Search Google News RIGHT NOW for latest ${topic} stories from last 24 hours.
+  const prompt2=`Search Google News RIGHT NOW for latest ${topic} stories from last 24 hours.
 Return RAW JSON only — no markdown, no explanation:
-{"articles":[{"title":"headline","description":"2 sentence summary","source":"news source name","pubDate":"today","link":""}]}
-Return exactly 10 different real news articles. Keep each description under 30 words.`;
+[{"title":"headline","description":"2 sentence summary under 30 words","source":"news source name","pubDate":"today","link":""}]
+Return exactly 10 different real news articles as a JSON array.`;
 
-    const body={contents:[{parts:[{text:prompt2}]}],
-      generationConfig:{temperature:0.3,maxOutputTokens:4000},
-      tools:[{google_search:{}}]};
-    const r=await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
-      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),
-       signal:AbortSignal.timeout(60000)});
-    const data=await r.json();
-    if(data.error) throw new Error(data.error.message);
-    let raw=data.candidates[0].content.parts[0].text;
-    raw=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
-    // Find the JSON array specifically
-    const arrStart=raw.indexOf('[');
-    const arrEnd=raw.lastIndexOf(']');
-    if(arrStart===-1) throw new Error('No JSON array in response');
-    const arrJson=raw.substring(arrStart,arrEnd+1);
-    const articles=JSON.parse(arrJson);
-    if(!articles.length) throw new Error('No articles returned');
-    latestNews=articles.map(a=>({
-      title:a.title, description:a.description||'',
-      source:a.source||'Live News', pubDate:a.pubDate||new Date().toISOString(),
-      link:a.link||'', extractedImage:null
-    }));
-    log(`✅ ${latestNews.length} articles fetched`,'ok');
-    renderNewsResults(latestNews); setStatus('READY');
-  }catch(err){ log(`❌ News fetch failed: ${err.message}`,'err'); setStatus('ERROR'); }
+  const models=['gemini-2.5-flash','gemini-2.0-flash','gemini-1.5-flash'];
+  for(const model of models){
+    try{
+      log(`📡 Fetching ${topic} via ${model}…`);
+      const body={contents:[{parts:[{text:prompt2}]}],
+        generationConfig:{temperature:0.3,maxOutputTokens:4000},
+        tools:[{google_search:{}}]};
+      const r=await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+        {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),
+         signal:AbortSignal.timeout(60000)});
+      const data=await r.json();
+      if(data.error){
+        const msg=data.error.message||'';
+        if(msg.includes('demand')||msg.includes('quota')||msg.includes('overload')){
+          log(`⚠ ${model} busy — trying next…`,'warn'); continue;
+        }
+        throw new Error(msg);
+      }
+      let raw=data.candidates[0].content.parts[0].text;
+      raw=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
+      const arrStart=raw.indexOf('[');
+      const arrEnd=raw.lastIndexOf(']');
+      if(arrStart===-1) throw new Error('No JSON array in response');
+      const articles=JSON.parse(raw.substring(arrStart,arrEnd+1));
+      if(!articles.length) throw new Error('No articles returned');
+      latestNews=articles.map(a=>({
+        title:a.title, description:a.description||'',
+        source:a.source||'Live News', pubDate:a.pubDate||new Date().toISOString(),
+        link:a.link||'', extractedImage:null
+      }));
+      log(`✅ ${latestNews.length} articles fetched via ${model}`,'ok');
+      renderNewsResults(latestNews); setStatus('READY');
+      return;
+    }catch(err){
+      if(err.message.includes('demand')||err.message.includes('quota')){
+        log(`⚠ ${model} busy — trying next…`,'warn'); continue;
+      }
+      log(`❌ News fetch failed: ${err.message}`,'err'); setStatus('ERROR'); return;
+    }
+  }
+  log('❌ All Gemini models busy. Please try again in a few minutes.','err');
+  setStatus('ERROR');
 }
 
 function renderNewsResults(articles){
