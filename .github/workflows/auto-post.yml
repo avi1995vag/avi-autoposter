@@ -1,0 +1,33 @@
+name: Auto-Poster — Every 30 Minutes
+
+on:
+  schedule:
+    # 6AM-10:30PM IST = 12:30AM-5:00PM UTC
+    - cron: '0,30 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17 * * *'
+  workflow_dispatch:  # Manual trigger from GitHub UI
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests pytz
+
+      - name: Run Auto-Poster
+        env:
+          GEMINI_KEY:        ${{ secrets.GEMINI_KEY }}
+          CLOUDINARY_NAME:   ${{ secrets.CLOUDINARY_NAME }}
+          CLOUDINARY_PRESET: ${{ secrets.CLOUDINARY_PRESET }}
+          META_TOKEN:        ${{ secrets.META_TOKEN }}
+          IG_USER_ID:        ${{ secrets.IG_USER_ID }}
+        run: python poster.py
