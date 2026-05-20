@@ -32,7 +32,14 @@ except ImportError:
         HAS_PIL = False
 
 app = Flask(__name__)
-CORS(app)  # Open — app is self-hosted on Render
+CORS(app, origins=[
+    "http://localhost",
+    "http://127.0.0.1",
+    "null",
+    "https://avit995vag.github.io",      # GitHub Pages
+    "https://avi-autoposter.onrender.com", # Render itself
+    "https://avinashvagarnal.gt.tc",       # your custom domain
+])
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
