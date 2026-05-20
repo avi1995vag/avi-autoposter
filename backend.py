@@ -14,7 +14,7 @@ CDN patterns handled:
 - Zee News: remove size params
 - Generic: detect and remove common resize query params
 """
-import sys, re, time, hashlib, urllib.parse, io
+import os, sys, re, time, hashlib, urllib.parse, io
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import requests
@@ -534,6 +534,24 @@ def test():
                  f'<img src="{p}" style="max-width:330px;display:block">'
                  f'<small style="word-break:break-all;color:#555;font-size:10px">{u}</small></div>')
     return html
+
+@app.route('/api/test_post')
+def test_post():
+    """Test auto-post — open in browser to trigger immediately."""
+    try:
+        import threading
+        def run():
+            try:
+                sched_run_slot('news', 'India Top News')
+            except Exception as e:
+                print(f'[TEST POST] Error: {e}')
+        threading.Thread(target=run, daemon=True).start()
+        return '''<h2>✅ Test post triggered!</h2>
+<p>Generating content and posting to Instagram + Facebook...</p>
+<p>Check <a href="/api/logs">logs</a> in 2-3 minutes.</p>
+<p>Also check your Instagram and Facebook pages!</p>'''
+    except Exception as e:
+        return f'<h2>❌ Error: {e}</h2>'
 
 @app.route('/api/topics', methods=['GET'])
 def get_topics():
