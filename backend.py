@@ -795,14 +795,15 @@ def start_builtin_scheduler():
     t.start()
     print('📅 Built-in scheduler started')
 
+# Start scheduler when loaded by gunicorn OR directly
+# This runs regardless of how the file is started
+start_builtin_scheduler()
+
 if __name__ == '__main__':
     try: import flask, flask_cors
     except ImportError:
         import subprocess
         subprocess.check_call([sys.executable,'-m','pip','install','flask','flask-cors','requests','Pillow','pytz'])
-
-    # Start built-in scheduler
-    start_builtin_scheduler()
 
     port = int(os.environ.get('PORT', 5000))
     print(f'🚀 Backend running on port {port}')
