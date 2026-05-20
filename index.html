@@ -1777,7 +1777,6 @@ function getCurrentCategory(){
   return AUTO_CATEGORIES.find(c => c.h===h && c.m===m) || null;
 }
 
-let autopilotTimer=null;
 let autopilotRunning=false;
 
 async function runAutopilotCycle(){
