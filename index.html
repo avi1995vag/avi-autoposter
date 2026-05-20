@@ -375,14 +375,14 @@ const THEMES = {
 };
 
 const NEWS_SOURCES = {
-  INDIA:     ['https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms','https://www.thehindu.com/news/national/feeder/default.rss'],
-  KARNATAKA: ['https://news.google.com/rss/search?q=Karnataka+news&ceid=IN:en&hl=en-IN&gl=IN'],
+  INDIA:     ['https://news.google.com/rss/search?q=India+top+news+today&ceid=IN:en&hl=en-IN&gl=IN','https://news.google.com/rss/headlines/section/geo/IN?ned=in&hl=en-IN&gl=IN'],
+  KARNATAKA: ['https://news.google.com/rss/search?q=Karnataka+news+today&ceid=IN:en&hl=en-IN&gl=IN'],
   BENGALURU: ['https://news.google.com/rss/search?q=Bengaluru+news+today&ceid=IN:en&hl=en-IN&gl=IN'],
-  POLITICS:  ['https://timesofindia.indiatimes.com/rssfeeds/1221656.cms'],
-  BUSINESS:  ['https://economictimes.indiatimes.com/rssfeedstopstories.cms'],
-  SPORTS:    ['https://timesofindia.indiatimes.com/rssfeeds/4719148.cms'],
+  POLITICS:  ['https://news.google.com/rss/search?q=India+politics+news+today&ceid=IN:en&hl=en-IN&gl=IN'],
+  BUSINESS:  ['https://news.google.com/rss/search?q=India+business+economy+news+today&ceid=IN:en&hl=en-IN&gl=IN'],
+  SPORTS:    ['https://news.google.com/rss/search?q=India+sports+cricket+news+today&ceid=IN:en&hl=en-IN&gl=IN'],
   AI:        ['https://feeds.feedburner.com/TechCrunch'],
-  GLOBAL:    ['https://feeds.bbci.co.uk/news/world/rss.xml']
+  GLOBAL:    ['https://news.google.com/rss/search?q=world+news+today&ceid=IN:en&hl=en-IN&gl=IN']
 };
 
 /* ═══════════════════════════════════════════════════════════
@@ -450,13 +450,22 @@ document.getElementById('avatarUpload').addEventListener('change',e=>{
    RSS / NEWS FETCH
 ═══════════════════════════════════════════════════════════ */
 async function fetchRSSWithProxy(rssUrl) {
-  // Wake Render backend first if sleeping
-  try{
-    await fetch('https://avi-autoposter.onrender.com/api/test?q=ping',
-      {signal: AbortSignal.timeout(15000)});
-  }catch(e){}
+  // Google News RSS works directly from browser (no CORS issues)
+  // Try direct fetch first
+  try {
+    const r = await fetch(rssUrl, {signal: AbortSignal.timeout(15000)});
+    if(r.ok) {
+      const txt = await r.text();
+      const xml = new DOMParser().parseFromString(txt,'text/xml');
+      const items = xml.querySelectorAll('item');
+      if (items.length > 0) {
+        log(`✅ RSS loaded: ${items.length} articles`,'ok');
+        return parseXMLItems(items);
+      }
+    }
+  } catch(e) { log(`Direct RSS failed: ${e.message} — trying proxy…`,'warn'); }
 
-  // Try Render proxy
+  // Fallback: Render proxy
   try {
     const r = await fetch(
       `https://avi-autoposter.onrender.com/api/rss?url=${encodeURIComponent(rssUrl)}`,
@@ -467,9 +476,9 @@ async function fetchRSSWithProxy(rssUrl) {
       const items = xml.querySelectorAll('item');
       if (items.length > 0) return parseXMLItems(items);
     }
-  } catch(e) { log(`RSS proxy failed: ${e.message} — trying direct…`,'warn'); }
+  } catch(e) { log(`Render proxy failed: ${e.message} — trying rss2json…`,'warn'); }
 
-  // Fallback: rss2json
+  // Last fallback: rss2json
   try {
     const r = await fetch(
       `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=15`,
@@ -483,17 +492,6 @@ async function fetchRSSWithProxy(rssUrl) {
       }));
     }
   } catch(e) { log(`rss2json failed: ${e.message}`,'warn'); }
-
-  // Last fallback: direct fetch
-  try {
-    const r = await fetch(rssUrl, {signal: AbortSignal.timeout(10000)});
-    if(r.ok){
-      const txt = await r.text();
-      const xml = new DOMParser().parseFromString(txt,'text/xml');
-      const items = xml.querySelectorAll('item');
-      if(items.length > 0) return parseXMLItems(items);
-    }
-  } catch(e) {}
 
   return [];
 }
