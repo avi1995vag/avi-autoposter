@@ -1548,60 +1548,76 @@ async function handleRun(){
 
 /* ═══════════════════════════════════════════════════════════
    FACEBOOK PAGE DEPLOY
-   Uses same Meta token — needs pages_manage_posts permission
 ═══════════════════════════════════════════════════════════ */
 async function handleFBRun(){
   const token=document.getElementById('accessToken').value.trim();
   const caption=document.getElementById('caption').value.trim();
-  if(!token) return log('ERR: Paste Meta token first (needs pages_manage_posts).','err');
+  if(!token) return log('ERR: Paste Meta token first then click AUTH.','err');
   if(!slides.length) return log('ERR: Generate slides first.','err');
   const cn=document.getElementById('cloudName').value.trim();
   const pr=document.getElementById('uploadPreset').value.trim();
-  if(!cn||!pr) return log('ERR: Cloudinary name + preset required for hosting images.','err');
+  if(!cn||!pr) return log('ERR: Cloudinary name + preset required.','err');
 
   const btn=document.querySelector('button[onclick="handleFBRun()"]');
   btn.disabled=true; btn.textContent='⏳ Deploying to Facebook…'; setStatus('FB DEPLOY…');
   log('─── FACEBOOK DEPLOY START ───','warn');
 
   try{
-    // 1. Get Facebook Page ID
+    // 1. Get Facebook Page ID and Page Token
     const meRes=await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${token}`);
     const meData=await meRes.json();
     if(meData.error) throw new Error(meData.error.message);
     const page=meData.data?.[0];
-    if(!page) throw new Error('No Facebook Page found on this token.');
-    const pageId=page.id; const pageToken=page.access_token;
+    if(!page) throw new Error('No Facebook Page found. Make sure token has pages_show_list permission.');
+    const pageId=page.id;
+    const pageToken=page.access_token; // Always use Page Token, not User Token
     log(`📘 Page: ${page.name} (${pageId})`,'ok');
 
-    // 2. Upload slides to Cloudinary
+    // 2. Upload ALL slides to Cloudinary
     const urls=[];
     for(let i=0;i<slides.length;i++){
-      log(`☁️ Uploading slide ${i+1}…`);
+      log(`☁️ Uploading slide ${i+1}/${slides.length}…`);
       const cv=document.createElement('canvas'); cv.width=CANVAS_W; cv.height=CANVAS_H;
       drawSlide(cv,slides[i],i);
       const b64=cv.toDataURL('image/jpeg',.93).split(',')[1];
-      const form=new FormData(); form.append('file',`data:image/jpeg;base64,${b64}`); form.append('upload_preset',pr);
+      const form=new FormData();
+      form.append('file',`data:image/jpeg;base64,${b64}`);
+      form.append('upload_preset',pr);
       const r=await fetch(`https://api.cloudinary.com/v1_1/${cn}/image/upload`,{method:'POST',body:form});
       const d=await r.json(); if(d.error) throw new Error(d.error.message);
       urls.push(d.secure_url);
     }
     log(`✅ ${urls.length} slides uploaded to Cloudinary`,'ok');
 
-    // 3. Post to Facebook Page as photo album (multi-photo post)
-    // Facebook doesn't support carousel like Instagram — post as multi-image
+    // 3. Upload each photo to FB as unpublished
     const photoIds=[];
     for(const imgUrl of urls){
-      const p=new URLSearchParams({url:imgUrl,published:'false',access_token:pageToken});
-      const r=await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`,{method:'POST',body:p});
-      const d=await r.json(); if(d.error) throw new Error(d.error.message);
+      // Use JSON body to avoid URL param size limits
+      const r=await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({url:imgUrl, published:false, access_token:pageToken})
+      });
+      const d=await r.json();
+      if(d.error) throw new Error(`Photo upload: ${d.error.message}`);
       photoIds.push(d.id);
     }
+    log(`✅ ${photoIds.length} photos staged`,'ok');
 
-    // 4. Publish as multi-photo post
-    const postParams=new URLSearchParams({message:caption,access_token:pageToken});
-    photoIds.forEach((id,i)=>postParams.append(`attached_media[${i}]`,JSON.stringify({media_fbid:id})));
-    const postR=await fetch(`https://graph.facebook.com/v21.0/${pageId}/feed`,{method:'POST',body:postParams});
-    const postD=await postR.json(); if(postD.error) throw new Error(postD.error.message);
+    // 4. Publish as multi-photo post using JSON body
+    const attachedMedia=photoIds.map(id=>({media_fbid:id}));
+    const postBody={
+      message: caption.slice(0,2200), // FB caption limit
+      attached_media: attachedMedia,
+      access_token: pageToken
+    };
+    const postR=await fetch(`https://graph.facebook.com/v21.0/${pageId}/feed`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(postBody)
+    });
+    const postD=await postR.json();
+    if(postD.error) throw new Error(`Post: ${postD.error.message}`);
 
     log(`🎉 Facebook post published! ID: ${postD.id}`,'ok'); setStatus('FB POSTED ✓');
   }catch(err){
