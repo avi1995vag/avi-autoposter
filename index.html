@@ -336,6 +336,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
 
   <button class="btn-d" id="runBtn" onclick="handleRun()">🚀 Deploy to Instagram</button>
   <button style="margin-top:7px;background:#1877f2;border-color:#1877f2;color:#fff;font-weight:900;" onclick="handleFBRun()">📘 Deploy to Facebook Page</button>
+  <button style="margin-top:7px;background:linear-gradient(135deg,#e1306c,#1877f2);border:none;color:#fff;font-weight:900;width:100%;padding:10px;border-radius:8px;cursor:pointer;font-size:13px;" onclick="deployBoth()">⚡ Deploy to Instagram + Facebook</button>
   <button style="margin-top:7px;background:var(--accent3);border-color:var(--accent3);color:#000;font-weight:900;" onclick="downloadAllSlides()">⬇ Download All Slides (ZIP)</button>
 
   <hr>
@@ -1625,7 +1626,105 @@ async function handleFBRun(){
   }
   btn.disabled=false; btn.textContent='📘 Deploy to Facebook Page';
 }
-async function toggleAutopilot(){
+async function deployBoth(){
+  const btn=document.querySelector('button[onclick="deployBoth()"]');
+  btn.disabled=true; btn.textContent='⏳ Deploying to both…';
+  log('⚡ Deploying to Instagram + Facebook…','warn');
+
+  // Upload slides once to Cloudinary, reuse URLs for both platforms
+  const token=document.getElementById('accessToken').value.trim();
+  const caption=document.getElementById('caption').value.trim();
+  const cn=document.getElementById('cloudName').value.trim();
+  const pr=document.getElementById('uploadPreset').value.trim();
+  const userId=document.getElementById('userId').value.trim();
+  if(!token||!userId) return log('ERR: Click AUTH first.','err');
+  if(!slides.length) return log('ERR: Generate slides first.','err');
+  if(!cn||!pr) return log('ERR: Cloudinary name + preset required.','err');
+
+  try{
+    // Upload all slides once
+    log('☁️ Uploading slides to Cloudinary…');
+    const urls=[];
+    for(let i=0;i<slides.length;i++){
+      log(`  Slide ${i+1}/${slides.length}…`);
+      const cv=document.createElement('canvas'); cv.width=CANVAS_W; cv.height=CANVAS_H;
+      drawSlide(cv,slides[i],i);
+      const b64=cv.toDataURL('image/jpeg',.93).split(',')[1];
+      const form=new FormData();
+      form.append('file',`data:image/jpeg;base64,${b64}`);
+      form.append('upload_preset',pr);
+      const r=await fetch(`https://api.cloudinary.com/v1_1/${cn}/image/upload`,{method:'POST',body:form});
+      const d=await r.json(); if(d.error) throw new Error(d.error.message);
+      urls.push(d.secure_url);
+    }
+    log(`✅ ${urls.length} slides uploaded`,'ok');
+
+    // ── Instagram ──────────────────────────────────────────
+    log('📸 Posting to Instagram…');
+    try{
+      const childIds=[];
+      for(let i=0;i<urls.length;i++){
+        const p=new URLSearchParams({image_url:urls[i],is_carousel_item:'true',access_token:token});
+        const r=await fetch(`https://graph.facebook.com/v21.0/${userId}/media`,{method:'POST',body:p});
+        const d=await r.json(); if(d.error) throw new Error(d.error.message);
+        childIds.push(d.id);
+      }
+      const p2=new URLSearchParams({media_type:'CAROUSEL',children:childIds.join(','),caption,access_token:token});
+      const r2=await fetch(`https://graph.facebook.com/v21.0/${userId}/media`,{method:'POST',body:p2});
+      const d2=await r2.json(); if(d2.error) throw new Error(d2.error.message);
+      // Wait for processing
+      let ready=false;
+      for(let i=0;i<24;i++){
+        await new Promise(r=>setTimeout(r,5000));
+        const r3=await fetch(`https://graph.facebook.com/v21.0/${d2.id}?fields=status_code&access_token=${token}`);
+        const d3=await r3.json();
+        if(d3.status_code==='FINISHED'){ready=true;break;}
+        if(d3.status_code==='ERROR') throw new Error('Meta rejected carousel');
+      }
+      if(!ready) throw new Error('IG processing timeout');
+      const p4=new URLSearchParams({creation_id:d2.id,access_token:token});
+      const r4=await fetch(`https://graph.facebook.com/v21.0/${userId}/media_publish`,{method:'POST',body:p4});
+      const d4=await r4.json(); if(d4.error) throw new Error(d4.error.message);
+      log(`✅ Instagram posted! ID: ${d4.id}`,'ok');
+    }catch(igErr){
+      log(`❌ Instagram failed: ${igErr.message}`,'err');
+    }
+
+    // ── Facebook ───────────────────────────────────────────
+    log('📘 Posting to Facebook…');
+    try{
+      const meRes=await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${token}`);
+      const meData=await meRes.json();
+      if(meData.error) throw new Error(meData.error.message);
+      const page=meData.data?.[0];
+      if(!page) throw new Error('No FB Page found');
+      const pageId=page.id; const pageToken=page.access_token;
+      const photoIds=[];
+      for(const imgUrl of urls){
+        const r=await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`,{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({url:imgUrl,published:false,access_token:pageToken})
+        });
+        const d=await r.json(); if(d.error) throw new Error(d.error.message);
+        photoIds.push(d.id);
+      }
+      const postR=await fetch(`https://graph.facebook.com/v21.0/${pageId}/feed`,{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({message:caption.slice(0,2200),attached_media:photoIds.map(id=>({media_fbid:id})),access_token:pageToken})
+      });
+      const postD=await postR.json(); if(postD.error) throw new Error(postD.error.message);
+      log(`✅ Facebook posted! ID: ${postD.id}`,'ok');
+    }catch(fbErr){
+      log(`❌ Facebook failed: ${fbErr.message}`,'err');
+    }
+
+    setStatus('POSTED ✓');
+    log('🎉 Both platforms done!','ok');
+  }catch(err){
+    log(`❌ Deploy error: ${err.message}`,'err'); setStatus('FAILED');
+  }
+  btn.disabled=false; btn.textContent='⚡ Deploy to Instagram + Facebook';
+}
   const btn=document.getElementById('autopilotBtn'), badge=document.getElementById('autoStatus');
   if(autopilotTimer){
     clearInterval(autopilotTimer); autopilotTimer=null; btn.textContent='▶ Start Autopilot'; btn.classList.remove('btn-ap'); badge.textContent='OFF'; badge.style.color='var(--muted)'; log('🛑 Autopilot disabled.','warn');
