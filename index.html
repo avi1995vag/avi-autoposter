@@ -678,24 +678,28 @@ async function fetchLiveNews(){
   const key=document.getElementById('geminiKey').value.trim();
   if(!key){ log('ERR: Gemini API key required','err'); return; }
   try{
-    const prompt=`Search Google News RIGHT NOW for latest ${topic} stories from last 24 hours.
-Return RAW JSON only:
+    const prompt2=`Search Google News RIGHT NOW for latest ${topic} stories from last 24 hours.
+Return RAW JSON only — no markdown, no explanation:
 {"articles":[{"title":"headline","description":"2 sentence summary","source":"news source name","pubDate":"today","link":""}]}
-Return 10-12 different real news articles.`;
-    const body={contents:[{parts:[{text:prompt}]}],
-      generationConfig:{temperature:0.3,maxOutputTokens:2000},
+Return exactly 10 different real news articles. Keep each description under 30 words.`;
+
+    const body={contents:[{parts:[{text:prompt2}]}],
+      generationConfig:{temperature:0.3,maxOutputTokens:4000},
       tools:[{google_search:{}}]};
     const r=await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
       {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),
-       signal:AbortSignal.timeout(45000)});
+       signal:AbortSignal.timeout(60000)});
     const data=await r.json();
     if(data.error) throw new Error(data.error.message);
     let raw=data.candidates[0].content.parts[0].text;
     raw=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
-    const s=raw.indexOf('{'),e=raw.lastIndexOf('}');
-    const parsed=JSON.parse(raw.substring(s,e+1));
-    const articles=parsed.articles||[];
+    // Find the JSON array specifically
+    const arrStart=raw.indexOf('[');
+    const arrEnd=raw.lastIndexOf(']');
+    if(arrStart===-1) throw new Error('No JSON array in response');
+    const arrJson=raw.substring(arrStart,arrEnd+1);
+    const articles=JSON.parse(arrJson);
     if(!articles.length) throw new Error('No articles returned');
     latestNews=articles.map(a=>({
       title:a.title, description:a.description||'',
@@ -764,7 +768,7 @@ EXACTLY 10 SLIDES:
 - Each slide MUST be a completely different news story.`;
 
   try{
-    const parsed=await fetchFromGemini(prompt, true); // true = use Google Search
+    const parsed=await fetchFromGemini(prompt, true);
     if(!parsed.slides||!parsed.slides.length) throw new Error('No slides returned');
     slides=parsed.slides; slideImageOverrides={};
 
