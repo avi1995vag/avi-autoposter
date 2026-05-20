@@ -135,7 +135,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <div class="field"><input id="accessToken" type="password" placeholder="EAAi… long-lived token"></div>
       <button class="btn-sm btn-p" onclick="verifyToken()">AUTH</button>
     </div>
-    <div style="font-size:10px;color:var(--muted);margin-top:3px;">Needs pages_show_list + instagram_basic + instagram_content_publish</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:3px;">Needs <b>pages_show_list</b> + <b>instagram_basic</b> + <b>instagram_content_publish</b> + <b>pages_manage_posts</b><br>Use a <b>User Token</b> from Meta Business Suite → click AUTH to auto-detect your IG account</div>
   </div>
   <div class="field"><label>Instagram Business Account ID</label><input id="userId" type="text" placeholder="Auto-filled after AUTH…"></div>
   <div class="row">
@@ -1446,61 +1446,103 @@ async function uploadToCloudinary(b64){
 
 async function verifyToken(){
   const token=document.getElementById('accessToken').value.trim();
-  if(!token){ log('ERR: Paste token first.','err'); return; }
+  if(!token){ log('ERR: Paste your Meta Long-Lived Token first.','err'); return; }
   log('🔐 Verifying Meta token…');
   try{
-    const r1=await fetch(`https://graph.instagram.com/v21.0/me?fields=id,username&access_token=${token}`);
+    // Step 1: Get Facebook Pages linked to this token
+    const r1=await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${token}`);
     const d1=await r1.json();
-    if(!d1.error){ document.getElementById('userId').value=d1.id; log(`✅ IG: @${d1.username}`,'ok'); setStatus('AUTHED'); return; }
-    const r2=await fetch(`https://graph.facebook.com/v21.0/me/accounts?fields=instagram_business_account{id,username}&access_token=${token}`);
-    const d2=await r2.json();
-    if(d2.error) throw new Error(d2.error.message);
-    for(const p of (d2.data||[])){
-      if(p.instagram_business_account){
-        document.getElementById('userId').value=p.instagram_business_account.id; log(`✅ Linked IG Business found.`,'ok'); setStatus('AUTHED'); return;
+    if(d1.error) throw new Error(`FB Error: ${d1.error.message}`);
+    const pages=d1.data||[];
+    if(!pages.length) throw new Error('No Facebook Pages found. Make sure token has pages_show_list permission.');
+    log(`✅ Found ${pages.length} Facebook Page(s)`,'ok');
+
+    // Step 2: Find Instagram Business Account linked to first page
+    for(const page of pages){
+      const pageToken=page.access_token;
+      const pageId=page.id;
+      const r2=await fetch(`https://graph.facebook.com/v21.0/${pageId}?fields=instagram_business_account&access_token=${pageToken}`);
+      const d2=await r2.json();
+      if(d2.instagram_business_account?.id){
+        const igId=d2.instagram_business_account.id;
+        // Get IG username
+        const r3=await fetch(`https://graph.facebook.com/v21.0/${igId}?fields=id,username,name&access_token=${pageToken}`);
+        const d3=await r3.json();
+        document.getElementById('userId').value=igId;
+        // Store page token separately (IG API needs page token, not user token)
+        document.getElementById('accessToken').value=pageToken;
+        log(`✅ Instagram Business: @${d3.username||igId} (ID: ${igId})`,'ok');
+        log(`✅ Using Page Token for: ${page.name}`,'ok');
+        setStatus('AUTHED');
+        return;
       }
     }
-    throw new Error('No connected IG Account found.');
+    throw new Error('No Instagram Business Account linked to your Facebook Pages. Go to Facebook Page Settings → Instagram → Connect Account.');
   }catch(err){ log(`Auth failed: ${err.message}`,'err'); }
 }
 
 async function handleRun(){
-  const userId=document.getElementById('userId').value.trim(), token=document.getElementById('accessToken').value.trim(), caption=document.getElementById('caption').value.trim();
-  if(!userId||!token) return log('ERR: Missing IG credentials. Click AUTH first.','err');
+  const userId=document.getElementById('userId').value.trim();
+  const token=document.getElementById('accessToken').value.trim();
+  const caption=document.getElementById('caption').value.trim();
+  if(!userId||!token) return log('ERR: Click AUTH first to link your Instagram.','err');
   if(!slides.length) return log('ERR: Generate slides first.','err');
   const btn=document.getElementById('runBtn'); btn.disabled=true; btn.textContent='⏳ Deploying…'; setStatus('DEPLOYING…');
   try{
-    log('─── DEPLOY START ───','warn'); const urls=[];
+    log('─── DEPLOY START ───','warn');
+
+    // Upload all slides to Cloudinary
+    const urls=[];
     for(let i=0;i<slides.length;i++){
       log(`☁️ Uploading slide ${i+1} to Cloudinary…`);
-      const cv=document.createElement('canvas'); cv.width=CANVAS_W; cv.height=CANVAS_H; drawSlide(cv,slides[i],i);
+      const cv=document.createElement('canvas'); cv.width=CANVAS_W; cv.height=CANVAS_H;
+      drawSlide(cv,slides[i],i);
       const b64=cv.toDataURL('image/jpeg',.93).split(',')[1];
       urls.push(await uploadToCloudinary(b64));
     }
+    log(`✅ ${urls.length} slides uploaded`,'ok');
+
+    // Create Instagram carousel item containers
+    // Use graph.facebook.com (not graph.instagram.com) with Page token
     const childIds=[];
     for(let i=0;i<urls.length;i++){
+      log(`📦 Creating IG container ${i+1}/${urls.length}…`);
       const p=new URLSearchParams({image_url:urls[i],is_carousel_item:'true',access_token:token});
-      const r=await fetch(`https://graph.instagram.com/v21.0/${userId}/media`,{method:'POST',body:p});
-      const d=await r.json(); if(d.error) throw new Error(d.error.message); childIds.push(d.id);
+      const r=await fetch(`https://graph.facebook.com/v21.0/${userId}/media`,{method:'POST',body:p});
+      const d=await r.json();
+      if(d.error) throw new Error(`Container error: ${d.error.message}`);
+      childIds.push(d.id);
     }
+
+    // Create carousel container
     const p2=new URLSearchParams({media_type:'CAROUSEL',children:childIds.join(','),caption,access_token:token});
-    const r2=await fetch(`https://graph.instagram.com/v21.0/${userId}/media`,{method:'POST',body:p2});
-    const d2=await r2.json(); if(d2.error) throw new Error(d2.error.message);
-    const carouselId=d2.id; log(`🎠 Carousel container created. Wait for Meta processing…`,'ok');
-    
+    const r2=await fetch(`https://graph.facebook.com/v21.0/${userId}/media`,{method:'POST',body:p2});
+    const d2=await r2.json();
+    if(d2.error) throw new Error(`Carousel error: ${d2.error.message}`);
+    const carouselId=d2.id;
+    log(`🎠 Carousel container created. Waiting for Meta…`,'ok');
+
+    // Wait for Meta to process
     let ready=false;
-    for(let i=0;i<20;i++){
-      const r3=await fetch(`https://graph.instagram.com/v21.0/${carouselId}?fields=status_code&access_token=${token}`);
-      const d3=await r3.json(); if(d3.status_code==='FINISHED'){ready=true;break;}
-      if(d3.status_code==='ERROR') throw new Error('Meta rejected the container.');
+    for(let i=0;i<24;i++){
       await new Promise(r=>setTimeout(r,5000));
+      const r3=await fetch(`https://graph.facebook.com/v21.0/${carouselId}?fields=status_code&access_token=${token}`);
+      const d3=await r3.json();
+      if(d3.status_code==='FINISHED'){ ready=true; break; }
+      if(d3.status_code==='ERROR') throw new Error(`Meta rejected carousel: ${JSON.stringify(d3)}`);
+      log(`  Meta status: ${d3.status_code||'processing'}…`);
     }
-    if(!ready) throw new Error('Meta processing timeout.');
+    if(!ready) throw new Error('Meta processing timeout (2 min). Try again.');
+
+    // Publish
     const p4=new URLSearchParams({creation_id:carouselId,access_token:token});
-    const r4=await fetch(`https://graph.instagram.com/v21.0/${userId}/media_publish`,{method:'POST',body:p4});
-    const d4=await r4.json(); if(d4.error) throw new Error(d4.error.message);
-    log(`🎉 SUCCESS! Post ID: ${d4.id}`,'ok'); setStatus('POSTED ✓');
-  }catch(err){ log(`❌ DEPLOY ERROR: ${err.message}`,'err'); setStatus('DEPLOY FAILED'); }
+    const r4=await fetch(`https://graph.facebook.com/v21.0/${userId}/media_publish`,{method:'POST',body:p4});
+    const d4=await r4.json();
+    if(d4.error) throw new Error(`Publish error: ${d4.error.message}`);
+    log(`🎉 SUCCESS! Instagram Post ID: ${d4.id}`,'ok'); setStatus('POSTED ✓');
+  }catch(err){
+    log(`❌ DEPLOY ERROR: ${err.message}`,'err'); setStatus('DEPLOY FAILED');
+  }
   btn.disabled=false; btn.textContent='🚀 Deploy to Instagram';
 }
 
