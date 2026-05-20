@@ -1731,19 +1731,133 @@ async function deployBoth(){
   btn.disabled=false; btn.textContent='⚡ Deploy to Instagram + Facebook';
 }
 
+/* ═══════════════════════════════════════════════════════════
+   SMART AUTOPILOT — Every 30 min, category rotation
+═══════════════════════════════════════════════════════════ */
+const AUTO_CATEGORIES = [
+  {h:6,  m:0,  type:'news',       topic:'India Top News'},
+  {h:6,  m:30, type:'motivation', topic:'Morning Discipline'},
+  {h:7,  m:0,  type:'news',       topic:'Karnataka News'},
+  {h:7,  m:30, type:'news',       topic:'Sports & Cricket'},
+  {h:8,  m:0,  type:'motivation', topic:'Success Mindset'},
+  {h:8,  m:30, type:'news',       topic:'Business & Economy'},
+  {h:9,  m:0,  type:'news',       topic:'Technology & AI'},
+  {h:9,  m:30, type:'motivation', topic:'Growth Mindset'},
+  {h:10, m:0,  type:'news',       topic:'Global News'},
+  {h:10, m:30, type:'news',       topic:'India Politics'},
+  {h:11, m:0,  type:'motivation', topic:'Focus & Productivity'},
+  {h:11, m:30, type:'news',       topic:'Bengaluru City News'},
+  {h:12, m:0,  type:'news',       topic:'Entertainment & Cinema'},
+  {h:12, m:30, type:'motivation', topic:'Leadership'},
+  {h:13, m:0,  type:'news',       topic:'Health & Science'},
+  {h:13, m:30, type:'news',       topic:'Karnataka Politics'},
+  {h:14, m:0,  type:'motivation', topic:'Hustle & Hard Work'},
+  {h:14, m:30, type:'news',       topic:'Sports Live Updates'},
+  {h:15, m:0,  type:'news',       topic:'Business News'},
+  {h:15, m:30, type:'motivation', topic:'Confidence'},
+  {h:16, m:0,  type:'news',       topic:'India Breaking News'},
+  {h:16, m:30, type:'news',       topic:'Global Politics'},
+  {h:17, m:0,  type:'motivation', topic:'Resilience'},
+  {h:17, m:30, type:'news',       topic:'Technology News'},
+  {h:18, m:0,  type:'news',       topic:'Cricket & IPL'},
+  {h:18, m:30, type:'motivation', topic:'Evening Reflection'},
+  {h:19, m:0,  type:'news',       topic:'Karnataka Top Stories'},
+  {h:19, m:30, type:'motivation', topic:'Never Give Up'},
+  {h:20, m:0,  type:'news',       topic:'India Night Bulletin'},
+  {h:20, m:30, type:'motivation', topic:'Gratitude'},
+  {h:21, m:0,  type:'news',       topic:'Global Night News'},
+  {h:21, m:30, type:'motivation', topic:'Night Wisdom'},
+  {h:22, m:0,  type:'motivation', topic:'Tomorrow Preparation'},
+];
+
+function getCurrentCategory(){
+  const now = new Date();
+  const h = now.getHours();
+  const m = now.getMinutes() >= 30 ? 30 : 0;
+  return AUTO_CATEGORIES.find(c => c.h===h && c.m===m) || null;
+}
+
+let autopilotTimer=null;
+let autopilotRunning=false;
+
+async function runAutopilotCycle(){
+  if(autopilotRunning){ log('⚠ Already running — skipping this cycle','warn'); return; }
+  autopilotRunning=true;
+  const cat = getCurrentCategory();
+  if(!cat){ log('⏸ Outside posting hours (6AM-10PM IST)'); autopilotRunning=false; return; }
+
+  log(`🤖 Auto-post: ${cat.type.toUpperCase()} — ${cat.topic}`,'warn');
+  try{
+    const lang = document.getElementById('aiLanguage')?.value || 'English';
+    currentLang = lang;
+
+    if(cat.type === 'news'){
+      // Use Live News carousel
+      switchMode('news');
+      await fetchLiveNews();
+      await generateTop10NewsCarousel();
+    } else {
+      // Use AI carousel for motivation
+      const topicEl = document.getElementById('aiTopic');
+      if(topicEl) topicEl.value = cat.topic;
+      switchMode('carousel');
+      await generateAI();
+    }
+
+    // Deploy to both platforms
+    await deployBoth();
+    log(`✅ Auto-posted: ${cat.topic}`,'ok');
+  }catch(err){
+    log(`🤖 Cycle failed: ${err.message}`,'err');
+  }
+  autopilotRunning=false;
+}
+
 async function toggleAutopilot(){
-  const btn=document.getElementById('autopilotBtn'), badge=document.getElementById('autoStatus');
+  const btn=document.getElementById('autopilotBtn');
+  const badge=document.getElementById('autoStatus');
   if(autopilotTimer){
-    clearInterval(autopilotTimer); autopilotTimer=null; btn.textContent='▶ Start Autopilot'; btn.classList.remove('btn-ap'); badge.textContent='OFF'; badge.style.color='var(--muted)'; log('🛑 Autopilot disabled.','warn');
+    clearInterval(autopilotTimer);
+    autopilotTimer=null;
+    btn.textContent='▶ Start Autopilot';
+    btn.classList.remove('btn-ap');
+    badge.textContent='OFF';
+    badge.style.color='var(--muted)';
+    log('🛑 Autopilot stopped.','warn');
   }else{
-    if(!document.getElementById('userId').value||!document.getElementById('geminiKey').value) return log('ERR: Auth + API keys required.','err');
-    btn.textContent='⏹ Stop Autopilot'; btn.classList.add('btn-ap'); badge.textContent='ACTIVE'; badge.style.color='var(--accent4)'; log('🤖 Autopilot ARMED.','ok');
-    autopilotTimer=setInterval(runAutopilotCycle,7200000); runAutopilotCycle();
+    const userId=document.getElementById('userId').value;
+    const gemKey=document.getElementById('geminiKey').value;
+    if(!userId||!gemKey) return log('ERR: AUTH + Gemini key required first.','err');
+
+    btn.textContent='⏹ Stop Autopilot';
+    btn.classList.add('btn-ap');
+    badge.textContent='ACTIVE';
+    badge.style.color='var(--accent4)';
+    log('🤖 Autopilot ARMED — posts every 30 min at scheduled times.','ok');
+    log(`📅 Next post at: ${getNextSlotTime()}`,'ok');
+
+    // Check every minute if it's time to post
+    autopilotTimer = setInterval(async ()=>{
+      const cat = getCurrentCategory();
+      if(cat) await runAutopilotCycle();
+    }, 60000); // check every minute
+
+    // Run immediately if we're at a scheduled time
+    const cat = getCurrentCategory();
+    if(cat) runAutopilotCycle();
   }
 }
-async function runAutopilotCycle(){
-  log('🤖 Autopilot cycle started…','warn');
-  try{ switchMode('news'); await fetchLiveNews(); await generateTop10NewsCarousel(); await handleRun(); log('🤖 Cycle done. Next in 2 hours.','ok'); }catch(err){ log(`🤖 Cycle failed: ${err.message}`,'err'); }
+
+function getNextSlotTime(){
+  const now = new Date();
+  const h = now.getHours();
+  const m = now.getMinutes();
+  for(const c of AUTO_CATEGORIES){
+    if(c.h > h || (c.h === h && c.m > m)){
+      return `${String(c.h).padStart(2,'0')}:${String(c.m).padStart(2,'0')} — ${c.topic}`;
+    }
+  }
+  return '06:00 tomorrow — India Top News';
 }
 
 /* ═══════════════════════════════════════════════════════════
