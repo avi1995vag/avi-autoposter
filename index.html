@@ -135,10 +135,9 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <div class="field"><input id="accessToken" type="password" placeholder="EAAi… long-lived token"></div>
       <button class="btn-sm btn-p" onclick="verifyToken()">AUTH</button>
     </div>
-    <div style="font-size:10px;color:var(--muted);margin-top:3px;">Needs <b>pages_show_list</b> + <b>instagram_basic</b> + <b>instagram_content_publish</b> + <b>pages_manage_posts</b><br>Use a <b>User Token</b> from Meta Business Suite → click AUTH to auto-detect your IG account</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:3px;">Needs pages_show_list + instagram_basic + instagram_content_publish</div>
   </div>
-  <div class="field"><label>Instagram Business Account ID</label><input id="userId" type="text" placeholder="Auto-filled after AUTH…"></div>
-  <input type="hidden" id="userToken"><!-- stores original user token for FB page lookup -->
+  <div class="field"><label>Instagram Business Account ID</label><input type="hidden" id="userToken"><input id="userId" type="text" placeholder="Auto-filled after AUTH…"></div>
   <div class="row">
     <div class="field"><label>Cloudinary Name</label><input id="cloudName" placeholder="my-cloud"></div>
     <div class="field"><label>Upload Preset (unsigned)</label><input id="uploadPreset" placeholder="preset"></div>
@@ -148,7 +147,6 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
     <input id="geminiKey" type="password" placeholder="AIzaSy…">
     <div class="rt-notice" style="margin-top:5px;">Google Search Grounding Active.</div>
   </div>
-  <div class="rt-notice" style="margin-top:5px;margin-bottom:5px;">📸 v15: Real news photos from 8 sources — zero API keys needed.</div>
 
   <hr>
   <div class="sec">Brand Identity</div>
@@ -184,7 +182,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
 <div class="col col-mid">
   
   <div style="background:rgba(88,101,242,.1);border:1px solid var(--accent);padding:10px;border-radius:10px;margin-bottom:15px;font-size:11px;">
-    <strong>Backend Status:</strong> Backend running on Render ✅ — Real news images active.
+    <strong>Backend Status:</strong> To enable robust Google Image Search & bypass CORS, ensure <code>run.bat</code> is running in the background!
   </div>
 
   <!-- CAROUSEL PANEL -->
@@ -283,7 +281,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
     <div class="field"><label>Title</label><input id="editTitle" oninput="applyEdit('title',this.value)"></div>
     <div class="field"><label>Body</label><textarea id="editBody" rows="3" oninput="applyEdit('body',this.value)"></textarea></div>
     <div class="field"><label>Layout</label>
-      <select id="editLayout" onchange="applyEdit('layout',this.value);document.getElementById('chartEditorPanel').style.display=this.value==='chart-bar'?'block':'none'">
+      <select id="editLayout" onchange="applyEdit('layout',this.value)">
         <option value="cover">Cover</option><option value="split">Split</option>
         <option value="text-focus">Glass</option><option value="magazine">Magazine</option>
         <option value="minimal">Minimal</option><option value="tweet">Quote Card</option>
@@ -299,11 +297,6 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
         <div class="field" style="margin:0;"><input id="editImgSource"></div>
         <button class="btn-sm" onclick="forceRefreshImage()">↻</button>
       </div>
-    </div>
-    <!-- CHART DATA EDITOR -->
-    <div id="chartEditorPanel" style="display:none;margin-top:8px;">
-      <label style="margin-bottom:6px;display:block;">📊 Chart Data (label:value per line)</label>
-      <textarea id="editChartData" rows="5" style="font-family:var(--font-mono);font-size:11px;" placeholder="BJP:140&#10;Congress:99&#10;AAP:22&#10;Others:41" oninput="applyChartEdit(this.value)"></textarea>
     </div>
     <!-- IMAGE OVERRIDE -->
     <div id="imgOverridePanel" style="display:none;margin-top:10px;">
@@ -335,10 +328,9 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
     <span class="char-count" id="charCount">0</span>
   </div>
 
-  <button style="margin-bottom:7px;background:linear-gradient(135deg,#e1306c,#1877f2);border:none;color:#fff;font-weight:900;width:100%;padding:12px;border-radius:8px;cursor:pointer;font-size:14px;letter-spacing:0.5px;" onclick="deployBoth()">⚡ Deploy to Instagram + Facebook</button>
+  <button style="margin-bottom:7px;background:linear-gradient(135deg,#e1306c,#1877f2);border:none;color:#fff;font-weight:900;width:100%;padding:12px;border-radius:8px;cursor:pointer;font-size:14px;" onclick="deployBoth()">⚡ Deploy to Instagram + Facebook</button>
   <button class="btn-d" id="runBtn" onclick="handleRun()">🚀 Instagram Only</button>
   <button style="margin-top:7px;background:#1877f2;border-color:#1877f2;color:#fff;font-weight:900;" onclick="handleFBRun()">📘 Facebook Only</button>
-  <button style="margin-top:7px;background:var(--accent3);border-color:var(--accent3);color:#000;font-weight:900;" onclick="downloadAllSlides()">⬇ Download All Slides (ZIP)</button>
 
   <hr>
   <div class="terminal" id="terminalLog">
@@ -354,12 +346,9 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
 ═══════════════════════════════════════════════════════════ */
 const CANVAS_W = 1080, CANVAS_H = 1080;
 let slides = [], currentMode = 'carousel', selectedSlide = null;
-// imageCache keyed by slide.cacheKey (UUID) — prevents cross-carousel image swapping
 let imageCache = {}, activeTheme = 'dark', currentLang = 'English';
 let latestNews = [], avatarImg = null, autopilotTimer = null;
-let slideImageOverrides = {};
-function makeUUID(){ return 'ck-'+Math.random().toString(36).slice(2)+'-'+Date.now().toString(36); }
-function assignCacheKeys(arr){ arr.forEach(s=>{ if(!s.cacheKey) s.cacheKey=makeUUID(); }); }
+let slideImageOverrides = {}; 
 
 const THEMES = {
   dark:      {bg:'#0f0f14',bg2:'#1a1a24',text:'#ffffff',sub:'#94a3b8',accent:'#5865f2',panel:'#1e1e2e'},
@@ -375,14 +364,14 @@ const THEMES = {
 };
 
 const NEWS_SOURCES = {
-  INDIA:     ['https://news.google.com/rss/search?q=India+top+news+today&ceid=IN:en&hl=en-IN&gl=IN','https://news.google.com/rss/headlines/section/geo/IN?ned=in&hl=en-IN&gl=IN'],
-  KARNATAKA: ['https://news.google.com/rss/search?q=Karnataka+news+today&ceid=IN:en&hl=en-IN&gl=IN'],
+  INDIA:     ['https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms','https://www.thehindu.com/news/national/feeder/default.rss'],
+  KARNATAKA: ['https://news.google.com/rss/search?q=Karnataka+news&ceid=IN:en&hl=en-IN&gl=IN'],
   BENGALURU: ['https://news.google.com/rss/search?q=Bengaluru+news+today&ceid=IN:en&hl=en-IN&gl=IN'],
-  POLITICS:  ['https://news.google.com/rss/search?q=India+politics+news+today&ceid=IN:en&hl=en-IN&gl=IN'],
-  BUSINESS:  ['https://news.google.com/rss/search?q=India+business+economy+news+today&ceid=IN:en&hl=en-IN&gl=IN'],
-  SPORTS:    ['https://news.google.com/rss/search?q=India+sports+cricket+news+today&ceid=IN:en&hl=en-IN&gl=IN'],
+  POLITICS:  ['https://timesofindia.indiatimes.com/rssfeeds/1221656.cms'],
+  BUSINESS:  ['https://economictimes.indiatimes.com/rssfeedstopstories.cms'],
+  SPORTS:    ['https://timesofindia.indiatimes.com/rssfeeds/4719148.cms'],
   AI:        ['https://feeds.feedburner.com/TechCrunch'],
-  GLOBAL:    ['https://news.google.com/rss/search?q=world+news+today&ceid=IN:en&hl=en-IN&gl=IN']
+  GLOBAL:    ['https://feeds.bbci.co.uk/news/world/rss.xml']
 };
 
 /* ═══════════════════════════════════════════════════════════
@@ -405,19 +394,19 @@ function setTheme(k){ activeTheme=k; document.querySelectorAll('.theme-chip').fo
 function updateCharCount(){ document.getElementById('charCount').textContent=document.getElementById('caption').value.length; }
 
 function saveSettings(){
-  ['userId','accessToken','userToken','cloudName','uploadPreset','geminiKey','handleText'].forEach(k=>{
+  ['userId','accessToken','cloudName','uploadPreset','geminiKey','handleText'].forEach(k=>{
     const el=document.getElementById(k); if(el) localStorage.setItem('app_'+k,el.value);
   });
   localStorage.setItem('app_theme',activeTheme);
   log('✅ Config saved.','ok');
 }
 function loadSettings(){
-  ['userId','accessToken','userToken','cloudName','uploadPreset','geminiKey','handleText'].forEach(k=>{
+  ['userId','accessToken','cloudName','uploadPreset','geminiKey','handleText'].forEach(k=>{
     const v=localStorage.getItem('app_'+k); const el=document.getElementById(k); if(v&&el) el.value=v;
   });
   const t=localStorage.getItem('app_theme'); if(t) setTheme(t);
   const ab=localStorage.getItem('app_avatar'); if(ab) loadB64Img(ab);
-  log('✅ System v15 — Real photos from 8 sources. Zero API keys.','ok');
+  log('✅ System ready. Gemini Search Active.','ok');
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -450,39 +439,18 @@ document.getElementById('avatarUpload').addEventListener('change',e=>{
    RSS / NEWS FETCH
 ═══════════════════════════════════════════════════════════ */
 async function fetchRSSWithProxy(rssUrl) {
-  // Google News RSS works directly from browser (no CORS issues)
-  // Try direct fetch first
   try {
-    const r = await fetch(rssUrl, {signal: AbortSignal.timeout(15000)});
+    const r = await fetch(`https://avi-autoposter.onrender.com/api/rss?url=${encodeURIComponent(rssUrl)}`);
     if(r.ok) {
-      const txt = await r.text();
-      const xml = new DOMParser().parseFromString(txt,'text/xml');
-      const items = xml.querySelectorAll('item');
-      if (items.length > 0) {
-        log(`✅ RSS loaded: ${items.length} articles`,'ok');
-        return parseXMLItems(items);
-      }
+        const txt = await r.text();
+        const xml = new DOMParser().parseFromString(txt,'text/xml');
+        const items = xml.querySelectorAll('item');
+        if (items.length > 0) return parseXMLItems(items);
     }
-  } catch(e) { log(`Direct RSS failed: ${e.message} — trying proxy…`,'warn'); }
+  } catch(e) { log(`Local RSS proxy failed (is run.bat running?): ${e.message}`,'warn'); }
 
-  // Fallback: Render proxy
   try {
-    const r = await fetch(
-      `https://avi-autoposter.onrender.com/api/rss?url=${encodeURIComponent(rssUrl)}`,
-      {signal: AbortSignal.timeout(30000)});
-    if(r.ok) {
-      const txt = await r.text();
-      const xml = new DOMParser().parseFromString(txt,'text/xml');
-      const items = xml.querySelectorAll('item');
-      if (items.length > 0) return parseXMLItems(items);
-    }
-  } catch(e) { log(`Render proxy failed: ${e.message} — trying rss2json…`,'warn'); }
-
-  // Last fallback: rss2json
-  try {
-    const r = await fetch(
-      `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=15`,
-      {signal: AbortSignal.timeout(15000)});
+    const r = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=15`);
     const d = await r.json();
     if (d.status==='ok' && d.items?.length > 0) {
       return d.items.map(i=>({
@@ -491,8 +459,7 @@ async function fetchRSSWithProxy(rssUrl) {
         extractedImage:i.enclosure?.link||i.thumbnail||extractImg(i.description||'')
       }));
     }
-  } catch(e) { log(`rss2json failed: ${e.message}`,'warn'); }
-
+  } catch(e) {}
   return [];
 }
 
@@ -500,102 +467,78 @@ function parseXMLItems(items) {
   return Array.from(items).slice(0,15).map(item=>{
     const g = s => item.querySelector(s)?.textContent?.replace(/<!\[CDATA\[|\]\]>/g,'').trim()||'';
     const title=g('title'), description=g('description'), pubDate=g('pubDate')||new Date().toISOString();
-    const link=g('link')||g('guid');
     let img=extractImg(description);
-    return {title,description,pubDate,link,source:item.querySelector('source')?.textContent||'Live',extractedImage:img};
+    return {title,description,pubDate,source:item.querySelector('source')?.textContent||'Live',extractedImage:img};
   }).filter(i=>i.title);
 }
 function extractImg(html){ const m=html.match(/<img[^>]+src=["']([^"']+)["']/i); return m?m[1]:null; }
 
 /* ═══════════════════════════════════════════════════════════
-   REAL IMAGE FETCHING — 8 SOURCES, ZERO API KEYS, NO AI
+   SMART IMAGE FETCHING (PYTHON BACKEND ENABLED)
 ═══════════════════════════════════════════════════════════ */
 function cleanSearchQuery(q) {
-  return (q||'').replace(/[^\w\s\-]/g,'').trim().slice(0, 80);
+  return q.replace(/[^\w\s\-]/g,'').trim().slice(0, 60);
 }
 
-function buildImageQuery(slide){
-  // Use imageQuery directly — already specific (person+action+year)
-  return cleanSearchQuery(slide.imageQuery || slide.title || '').slice(0,80);
-}
+async function fetchAIImage(slideId, query, visualStyle='', designNotes=''){
+  if(!query||!query.trim()) return null;
+  const richQ = cleanSearchQuery(query);
+  log(`[S${slideId}] 🎨 AI Gen: "${richQ}"…`,'warn');
 
-// Wake up Render backend if sleeping
-async function wakeBackend(){
-  try{ await fetch('https://avi-autoposter.onrender.com/api/test?q=ping', {signal: AbortSignal.timeout(12000)}); }catch(e){}
-}
+  const prompt = `${richQ}, ${visualStyle}, ${designNotes}, highly detailed cinematic 4k`;
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1080&height=1080&seed=${Math.floor(Math.random()*999999)}&nologo=true`;
 
-async function fetchSmartImage(slide, fallbackNewsUrl=null){
-  const cacheKey = slide.cacheKey;
-  if(!cacheKey) return null;
-  if(imageCache[cacheKey]) return imageCache[cacheKey];
-
-  const richQ = buildImageQuery(slide);
-  if(!richQ) return null;
-
-  // Try RSS article image first (most relevant)
-  if(fallbackNewsUrl){
-    try{
-      const proxyUrl = `https://avi-autoposter.onrender.com/api/proxy_image?url=${encodeURIComponent(fallbackNewsUrl)}`;
-      const img = await loadImg(proxyUrl, cacheKey, 12000);
-      log(`✅ [S${slide.id}] RSS article photo loaded.`,'ok');
-      return img;
-    }catch(e){
-      log(`[S${slide.id}] RSS photo failed → backend search…`,'warn');
-    }
-  }
-
-  // Try full query first, then shorter fallback query
-  const queries = [richQ];
-  const shortQ = richQ.split(' ').slice(0,3).join(' ');
-  if(shortQ.length > 3 && shortQ !== richQ) queries.push(shortQ);
-
-  for(const q of queries){
-    log(`[S${slide.id}] 🔍 Searching: "${q}"`);
+  try {
+    const proxyUrl = `https://avi-autoposter.onrender.com/api/proxy_image?url=${encodeURIComponent(url)}`;
+    const img = await loadImg(proxyUrl, slideId, 45000);
+    log(`✅ [S${slideId}] AI image generated.`,'ok');
+    return img;
+  } catch(e) {
     try {
-      const articleParam = slide.articleUrl ? `&article_url=${encodeURIComponent(slide.articleUrl)}` : '';
-      // 55s timeout — Render free tier can take 30-50s to wake from sleep
-      const controller = new AbortController();
-      const timer = setTimeout(()=>controller.abort(), 55000);
-      let res;
-      try{
-        res = await fetch(`https://avi-autoposter.onrender.com/api/search_image?q=${encodeURIComponent(q)}${articleParam}`, {signal: controller.signal});
-      }catch(fetchErr){
-        clearTimeout(timer);
-        if(fetchErr.name==='AbortError'){
-          log(`[S${slide.id}] ⚠ Timeout 55s — waking backend…`,'warn');
-          await wakeBackend();
-          // One more try after wake
-          res = await fetch(`https://avi-autoposter.onrender.com/api/search_image?q=${encodeURIComponent(q)}${articleParam}`);
-        } else { throw fetchErr; }
-      }
-      clearTimeout(timer);
+        const img = await loadImgViaBlob(url, slideId, 45000);
+        return img;
+    } catch(e2){ return null; }
+  }
+}
 
-      if(!res || !res.ok) throw new Error(`HTTP ${res?.status}`);
-      const data = await res.json();
-      const imgList = data.images || [];
-      log(`[S${slide.id}] Backend: ${imgList.length} images`);
+async function fetchSmartImage(slideId, query, fallbackNewsUrl=null, slideTitle=''){
+  if(!query||!query.trim()) return null;
+  const richQ = cleanSearchQuery(query);
 
-      for(const imgUrl of imgList.slice(0,12)){
-        try{
-          const proxyUrl = `https://avi-autoposter.onrender.com/api/proxy_image?url=${encodeURIComponent(imgUrl)}`;
-          const img = await loadImg(proxyUrl, cacheKey, 15000);
-          log(`✅ [S${slide.id}] Real image loaded.`,'ok');
-          return img;
-        }catch(e){}
-      }
-      if(imgList.length > 0){
-        log(`[S${slide.id}] ⚠ ${imgList.length} found, all failed to load — trying shorter query…`,'warn');
-      }
+  if(fallbackNewsUrl){
+    try{ 
+        log(`[S${slideId}] 📸 Using original News Article image…`);
+        const proxyUrl = `https://avi-autoposter.onrender.com/api/proxy_image?url=${encodeURIComponent(fallbackNewsUrl)}`;
+        const img=await loadImg(proxyUrl,slideId,8000); 
+        log(`✅ [S${slideId}] Loaded article photo.`,'ok'); return img; 
     }catch(e){
-      log(`[S${slide.id}] ⚠ Search error: ${e.message}`,'warn');
+        log(`[S${slideId}] RSS Image failed to load, falling back to Web Search.`,'warn');
     }
   }
 
-  log(`[S${slide.id}] ❌ No image after all attempts. Slide shows gradient.`,'err');
-  return null;
+  log(`[S${slideId}] 🔍 Searching Web: "${richQ}"`);
+  try {
+    const res = await fetch(`https://avi-autoposter.onrender.com/api/search_image?q=${encodeURIComponent(richQ)}`);
+    const data = await res.json();
+    if (data.images && data.images.length > 0) {
+      for (const imgUrl of data.images.slice(0, 6)) {
+        try {
+          const proxyUrl = `https://avi-autoposter.onrender.com/api/proxy_image?url=${encodeURIComponent(imgUrl)}`;
+          const img = await loadImg(proxyUrl, slideId, 9000);
+          log(`✅ [S${slideId}] Found real image via Web Search.`,'ok'); 
+          return img; 
+        } catch(e) {}
+      }
+    }
+  } catch(e) {
+    log(`Backend image search failed. Is run.bat open?`,'warn');
+  }
+
+  log(`[S${slideId}] 🤖 Web search found 0 results. Falling back to AI…`,'warn');
+  return await fetchAIImage(slideId, richQ, 'photojournalistic editorial news photography', 'dramatic lighting');
 }
 
-async function loadImgViaBlob(url, cacheKey, ms=60000){
+async function loadImgViaBlob(url, slideId, ms=60000){
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(), ms);
   try{
@@ -603,16 +546,16 @@ async function loadImgViaBlob(url, cacheKey, ms=60000){
     clearTimeout(timer);
     if(!resp.ok) throw new Error();
     const blob = await resp.blob();
-    return await loadImg(URL.createObjectURL(blob), cacheKey, 15000);
-  }catch(e){ return await loadImg(url, cacheKey, ms); }
+    return await loadImg(URL.createObjectURL(blob), slideId, 15000);
+  }catch(e){ return await loadImg(url, slideId, ms); }
 }
 
-function loadImg(url, cacheKey, ms=14000){
+function loadImg(url, slideId, ms=14000){
   return new Promise((res,rej)=>{
     const img=new Image();
     img.crossOrigin = 'Anonymous'; 
     const t=setTimeout(()=>{ img.src=''; rej(new Error('timeout')); },ms);
-    img.onload=()=>{ clearTimeout(t); if(cacheKey!=null) imageCache[cacheKey]=img; res(img); };
+    img.onload=()=>{ clearTimeout(t); if(slideId!=null) imageCache[slideId]=img; res(img); };
     img.onerror=()=>{ clearTimeout(t); rej(new Error('Load error')); };
     img.src=url;
   });
@@ -621,90 +564,38 @@ function loadImg(url, cacheKey, ms=14000){
 /* ═══════════════════════════════════════════════════════════
    GEMINI API (ROBUST JSON EXTRACTION TO PREVENT CRASHES)
 ═══════════════════════════════════════════════════════════ */
-async function fetchFromGemini(prompt, useGrounding=true, attempt=1){
+async function fetchFromGemini(prompt,useGrounding=true){
   const key=document.getElementById('geminiKey').value.trim();
-  if(!key) throw new Error('Missing Gemini API Key — paste it in the left panel.');
-
+  if(!key) throw new Error('Missing Gemini API Key.');
+  
   const body={
     contents:[{parts:[{text:prompt}]}],
     generationConfig:{ temperature:0.2, maxOutputTokens:8192 }
   };
   if(useGrounding) body.tools=[{google_search:{}}];
 
-  let data;
-  try{
-    const r=await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
-      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),
-       signal:AbortSignal.timeout(90000)});
-    data=await r.json();
-  }catch(netErr){
-    if(attempt<=3){
-      log(`⚠ Network error — retrying (${attempt}/3)…`,'warn');
-      await new Promise(r=>setTimeout(r, attempt*5000));
-      return fetchFromGemini(prompt, useGrounding, attempt+1);
-    }
-    throw new Error(`Network error: ${netErr.message}`);
+  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data=await r.json();
+  if(data.error) throw new Error(data.error.message);
+  
+  let txt=data.candidates[0].content.parts[0].text;
+  
+  // Clean markdown to guarantee JSON parsing works
+  txt = txt.replace(/```json/gi, '').replace(/```/g, '').trim();
+  const start = txt.indexOf('{');
+  const end = txt.lastIndexOf('}');
+  if (start !== -1 && end !== -1) {
+      txt = txt.substring(start, end + 1);
   }
-
-  // Handle Gemini API errors
-  if(data.error){
-    const code=data.error.code||0;
-    const msg=data.error.message||'Unknown error';
-    // 429 = rate limit / overload — retry with backoff
-    if((code===429||msg.includes('high demand')||msg.includes('overload'))&&attempt<=4){
-      const wait=attempt*15000; // 15s, 30s, 45s, 60s
-      log(`⚠ Gemini busy — waiting ${wait/1000}s then retry (${attempt}/4)…`,'warn');
-      await new Promise(r=>setTimeout(r,wait));
-      return fetchFromGemini(prompt, useGrounding, attempt+1);
-    }
-    // 503 = service unavailable — retry
-    if((code===503||msg.includes('unavailable'))&&attempt<=3){
-      log(`⚠ Gemini unavailable — retrying (${attempt}/3)…`,'warn');
-      await new Promise(r=>setTimeout(r,10000));
-      return fetchFromGemini(prompt, useGrounding, attempt+1);
-    }
-    throw new Error(msg);
+  
+  try{ 
+      return JSON.parse(txt); 
   }
-
-  // Safe response extraction
-  const candidates=data.candidates||[];
-  if(!candidates.length) throw new Error('Gemini returned no candidates. Try again.');
-  const parts=candidates[0]?.content?.parts||[];
-  if(!parts.length) throw new Error('Gemini returned empty content. Try again.');
-  let txt=parts[0]?.text||'';
-  if(!txt) throw new Error('Gemini returned blank text. Try again.');
-
-  // Clean markdown and extract JSON
-  txt = txt.replace(/```json/gi,'').replace(/```/g,'').trim();
-  const start=txt.indexOf('{');
-  const end=txt.lastIndexOf('}');
-  if(start===-1||end===-1) throw new Error('Gemini did not return valid JSON. Try again.');
-  txt=txt.substring(start, end+1);
-
-  let parsed;
-  try{ parsed=JSON.parse(txt); }
-  catch(er){
-    console.error('FAILED JSON:', txt.slice(0,500));
-    if(attempt<=2){
-      log(`⚠ JSON parse failed — retrying (${attempt}/2)…`,'warn');
-      await new Promise(r=>setTimeout(r,5000));
-      return fetchFromGemini(prompt, useGrounding, attempt+1);
-    }
-    throw new Error('Gemini returned malformed JSON. Please try again.');
+  catch(er){ 
+      console.error("FAILED JSON:", txt);
+      throw new Error('Gemini JSON parsing failed. Please try again.'); 
   }
-
-  // Validate slides array exists
-  if(!parsed.slides||!Array.isArray(parsed.slides)||parsed.slides.length===0){
-    if(attempt<=2){
-      log(`⚠ Gemini returned 0 slides — retrying (${attempt}/2)…`,'warn');
-      await new Promise(r=>setTimeout(r,5000));
-      return fetchFromGemini(prompt, useGrounding, attempt+1);
-    }
-    throw new Error('Gemini returned no slides. Please try again.');
-  }
-
-  return parsed;
 }
 
 function getLanguageInstruction(lang) {
@@ -739,36 +630,33 @@ OUTPUT FORMAT (RAW VALID JSON ONLY. NO MARKDOWN):
       "layout": "cover",
       "title": "...",
       "body": "...",
-      "imageQuery": "2-5 word Google image search query describing the EXACT scene, person, or event on this slide. Be specific: use proper nouns + context. Example: 'Virat Kohli batting IPL 2025', 'Bengaluru Metro inauguration', 'Union Budget 2025 Parliament'.",
-      "category": "...",
+      "imageQuery": "ONLY output 1 or 2 PROPER NOUNS (Specific Names or Places) for a search engine. NEVER output descriptive words.",
       "chartData": [{"label": "Data", "value": 50}]
     }
   ]
 }
 
-MANDATORY LAYOUT RULES:
+MANDATORY RULES:
 - Slide 1: layout="cover"
-- Slide 2: layout="chart-bar" if comparative data exists, otherwise layout="stats". body: max 20 words.
-- Slide ${Math.max(3,count-2)}: layout="timeline". body: EXACTLY 4-5 bullet points, each 3-4 words only (use \\n between them).
+- Slide 2: layout="chart-bar" if there is comparative data, otherwise "stats". (body: max 20 words).
+- Slide ${Math.max(3,count-2)}: layout="timeline" (body: EXACTLY 4 bullet points, 2-4 WORDS EACH.)
 - Slide ${count}: layout="cta"
-- Remaining slides: mix of [split, text-focus, minimal, dateline, impact, news-card]
-- EXACTLY ${count} slides. Titles max 8 words. Bodies max 30 words.
-- layout="chart-bar": include "chartData" array with 3-5 items [{label,value}]. Values must be numbers.
-- imageQuery: EXACT FULL NAME + specific action + place + year. E.g. "Virat Kohli batting MI vs CSK IPL 2026". NEVER: "politician", "leader", "player", "sports event", "cricket match". Each slide DIFFERENT query.`;
+- Remaining slides: Mix from [split, text-focus, minimal, dateline, impact]
+- EXACTLY ${count} slides total. Titles max 8 words. Bodies max 30 words.
+- CRITICAL imageQuery INSTRUCTION: MUST BE ONLY 1 OR 2 WORDS. Must be a Proper Noun (a real person's Name, or a real Place). Example: 'Siddaramaiah', 'Virat Kohli', 'Bengaluru'.
+- If layout="chart-bar", include a "chartData" array with 2-5 items: [{"label":"Team A", "value": 150}]. Values must be numbers.`;
 
   try{
     const parsed=await fetchFromGemini(prompt,true);
-    slides=(parsed.slides||[]).filter(s=>s&&s.id); if(!slides.length) throw new Error("No slides returned. Please try again."); currentLang=lang;
-    assignCacheKeys(slides);
-    imageCache={}; slideImageOverrides={};
+    slides=parsed.slides; currentLang=lang; slideImageOverrides={};
     document.getElementById('caption').value=parsed.caption||''; updateCharCount();
-    log('✅ Content ready. Fetching Google images…','ok');
+    log('✅ Content ready. Fetching images…','ok');
     buildGrid();
     for(let i=0;i<slides.length;i++){
       const s=slides[i];
-      if(s.imageQuery&&s.layout!=='cta'){
-        btn.textContent=`🔍 Image ${i+1}/${slides.length}…`;
-        await fetchSmartImage(s); buildGrid();
+      if(s.imageQuery&&s.layout!=='cta'){ 
+          btn.textContent=`🎨 Image ${i+1}/${slides.length}…`; 
+          await fetchAIImage(s.id,s.imageQuery,'',''); buildGrid(); 
       }
     }
     log('✨ Carousel complete!','ok'); switchMode('carousel');
@@ -780,63 +668,43 @@ MANDATORY LAYOUT RULES:
    LIVE NEWS
 ═══════════════════════════════════════════════════════════ */
 async function fetchLiveNews(){
-  const feed = document.getElementById('newsFeedSelect').value;
-  const feedNames = {
-    'INDIA':'India Top News', 'KARNATAKA':'Karnataka News',
-    'BENGALURU':'Bengaluru News', 'POLITICS':'Indian Politics',
-    'BUSINESS':'Business & Economy', 'SPORTS':'Sports & Cricket',
-    'AITECH':'AI & Technology', 'GLOBAL':'Global News'
-  };
-  const topic = feedNames[feed] || 'India Top News';
-  setStatus('FETCHING');
-  log(`📡 Fetching ${topic} via Gemini Search…`);
-
-  const key = document.getElementById('geminiKey').value.trim();
+  const feed=document.getElementById('newsFeedSelect').value;
+  const feedNames={'INDIA':'India Top News','KARNATAKA':'Karnataka News',
+    'BENGALURU':'Bengaluru News','POLITICS':'Indian Politics',
+    'BUSINESS':'Business & Economy','SPORTS':'Sports & Cricket',
+    'AI':'AI & Technology','GLOBAL':'Global News'};
+  const topic=feedNames[feed]||'India Top News';
+  setStatus('FETCHING'); log(`📡 Fetching ${topic} via Gemini Search…`);
+  const key=document.getElementById('geminiKey').value.trim();
   if(!key){ log('ERR: Gemini API key required','err'); return; }
-
   try{
-    const prompt = `Search Google News RIGHT NOW for the latest ${topic} stories from the last 24 hours.
-Return RAW JSON only — no markdown:
-{"articles":[{"title":"headline","description":"2 sentence summary","source":"news source name","pubDate":"today","link":"article url if known"}]}
-Return exactly 10-12 different news articles. All must be DIFFERENT stories. Real news only.`;
-
-    const body = {
-      contents:[{parts:[{text:prompt}]}],
-      generationConfig:{temperature:0.3, maxOutputTokens:2000},
-      tools:[{google_search:{}}]
-    };
-    const r = await fetch(
+    const prompt=`Search Google News RIGHT NOW for latest ${topic} stories from last 24 hours.
+Return RAW JSON only:
+{"articles":[{"title":"headline","description":"2 sentence summary","source":"news source name","pubDate":"today","link":""}]}
+Return 10-12 different real news articles.`;
+    const body={contents:[{parts:[{text:prompt}]}],
+      generationConfig:{temperature:0.3,maxOutputTokens:2000},
+      tools:[{google_search:{}}]};
+    const r=await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
-      {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
-       signal: AbortSignal.timeout(45000)});
-    const data = await r.json();
+      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),
+       signal:AbortSignal.timeout(45000)});
+    const data=await r.json();
     if(data.error) throw new Error(data.error.message);
-
-    let raw = data.candidates[0].content.parts[0].text;
-    raw = raw.replace(/```json/gi,'').replace(/```/g,'').trim();
-    const s = raw.indexOf('{'), e = raw.lastIndexOf('}');
-    const parsed = JSON.parse(raw.substring(s, e+1));
-    const articles = parsed.articles || [];
-
+    let raw=data.candidates[0].content.parts[0].text;
+    raw=raw.replace(/```json/gi,'').replace(/```/g,'').trim();
+    const s=raw.indexOf('{'),e=raw.lastIndexOf('}');
+    const parsed=JSON.parse(raw.substring(s,e+1));
+    const articles=parsed.articles||[];
     if(!articles.length) throw new Error('No articles returned');
-
-    // Convert to latestNews format
-    latestNews = articles.map(a=>({
-      title: a.title,
-      description: a.description || '',
-      source: a.source || 'Live News',
-      pubDate: a.pubDate || new Date().toISOString(),
-      link: a.link || '',
-      extractedImage: null
+    latestNews=articles.map(a=>({
+      title:a.title, description:a.description||'',
+      source:a.source||'Live News', pubDate:a.pubDate||new Date().toISOString(),
+      link:a.link||'', extractedImage:null
     }));
-
-    log(`✅ ${latestNews.length} articles fetched via Gemini Search`,'ok');
-    renderNewsResults(latestNews);
-    setStatus('READY');
-  }catch(err){
-    log(`❌ News fetch failed: ${err.message}`,'err');
-    setStatus('ERROR');
-  }
+    log(`✅ ${latestNews.length} articles fetched`,'ok');
+    renderNewsResults(latestNews); setStatus('READY');
+  }catch(err){ log(`❌ News fetch failed: ${err.message}`,'err'); setStatus('ERROR'); }
 }
 
 function renderNewsResults(articles){
@@ -855,68 +723,64 @@ function renderNewsResults(articles){
 }
 
 /* ═══════════════════════════════════════════════════════════
-   TOP 10 NEWS / DEEP DIVE / BREAKING
+   TOP 10 NEWS — ONE GEMINI CALL (search + carousel together)
 ═══════════════════════════════════════════════════════════ */
 async function generateTop10NewsCarousel(){
-  if(!latestNews.length) await fetchLiveNews(); if(!latestNews.length) return;
   const lang=document.getElementById('newsLangSelect').value; currentLang=lang;
-  log('🔥 Building Top 10 News Carousel…'); setStatus('BUILDING');
+  const feed=document.getElementById('newsFeedSelect').value;
+  const feedNames={
+    'INDIA':'India Top News','KARNATAKA':'Karnataka News',
+    'BENGALURU':'Bengaluru City News','POLITICS':'Indian Politics',
+    'BUSINESS':'Business & Economy','SPORTS':'Sports & Cricket',
+    'AI':'AI & Technology','GLOBAL':'Global World News'
+  };
+  const topic=feedNames[feed]||'India Top News';
+  log(`🔥 Building ${topic} Carousel (1 API call)…`); setStatus('BUILDING');
 
-  // Deduplicate: remove headlines that share 3+ words with an earlier one
-  function areSimilar(a, b){
-    const wa=new Set(a.toLowerCase().split(/\s+/).filter(w=>w.length>3));
-    const wb=b.toLowerCase().split(/\s+/).filter(w=>w.length>3);
-    return wb.filter(w=>wa.has(w)).length >= 3;
-  }
-  const unique=[];
-  for(const item of latestNews){
-    const title=(item.title||'').split(' - ')[0];
-    if(!unique.some(u=>areSimilar(u.title, title))){
-      unique.push({...item, title});
-      if(unique.length>=8) break;
-    }
-  }
-  const top8=unique.slice(0,8);
-  log(`📰 ${top8.length} unique stories selected (deduped from ${latestNews.length})`);
-
-  const prompt=`You are an ELITE Global News Editor. Transform these ${top8.length} DIFFERENT headlines into a 10-slide Instagram carousel.
+  // ONE single Gemini call — searches news AND creates carousel
+  const prompt=`You are an ELITE News Editor with REAL-TIME Google Search.
+TASK: Search Google News RIGHT NOW for the latest ${topic} stories from the last 24 hours.
+Find 8 DIFFERENT breaking stories. Then create a 10-slide Instagram carousel.
 LANGUAGE: ${lang}
 ${getLanguageInstruction(lang)}
 
-HEADLINES — each is a COMPLETELY DIFFERENT story, one per slide:
-${top8.map((n,i)=>`${i+1}. ${n.title}`).join('\n')}
-
 OUTPUT FORMAT (RAW VALID JSON ONLY. NO MARKDOWN):
-{"caption":"...","slides":[{"id":1,"layout":"magazine","title":"...","body":"...","imageQuery":"...","category":"...","ticker":"...","location":"...","source":"..."}]}
+{"caption":"Instagram caption with emojis and hashtags in ${lang}",
+"slides":[{"id":1,"layout":"magazine","title":"max 6 words in ${lang}","body":"20-25 words in ${lang}",
+"category":"BREAKING|CRIME|POLITICS|ELECTION|HEALTH|SPORTS|ECONOMY|TECH|ENVIRONMENT|HUMAN INTEREST",
+"ticker":"district/state/country of THIS story",
+"imageQuery":"EXACT full name + action + place + year in English e.g. Modi inaugurates airport Delhi 2026"}]}
 
-STRICT RULES:
-- Slide 1: layout="magazine". title: MAX 6 WORDS hook. body: EXACTLY 20-25 words summary of all stories. ticker: today's date. imageQuery: biggest story's main person + action + year.
-- Slides 2-9: layout="news-card". ONE slide = ONE headline. NEVER repeat a story. NEVER combine two stories.
-  Slide 2=Story 1, Slide 3=Story 2, ..., Slide 9=Story 8.
-  - title: max 8 words
-  - body: 2 sentences, max 25 words
-  - category: pick BEST match — CRIME|HUMAN INTEREST|POLITICS|ELECTION|ECONOMY|SPORTS|CRICKET|TECH|HEALTH|ENVIRONMENT|SOCIAL|VERDICT|WAR|PARLIAMENT|TERROR|BREAKING
-  - ticker: specific district/state/country of THIS story only
-  - imageQuery: EXACT FULL NAME + action + year. E.g. "Shubman Gill India captain press conference 2026". NEVER generic like "politician" or "cricket player".
+EXACTLY 10 SLIDES:
+- Slide 1: layout="magazine" — hook title max 6 words, body 20-25 words overview of all stories
+- Slides 2-9: layout="news-card" — ONE different story per slide, never combine two stories
+  title: max 8 words in ${lang}
+  body: 2 sentences max 25 words in ${lang}
+  category: pick best match for THIS story
+  ticker: specific location of THIS story (state/city/country)
+  imageQuery: EXACT FULL NAME + action + year in English — NEVER generic words
 - Slide 10: layout="cta"
-- EXACTLY 10 slides. Every slide covers a DIFFERENT topic/story.`;
+- All text in ${lang}. imageQuery always in English.
+- Each slide MUST be a completely different news story.`;
 
   try{
-    const parsed=await fetchFromGemini(prompt,false);
-    slides=(parsed.slides||[]).filter(s=>s&&s.id); if(!slides.length) throw new Error("No slides returned. Please try again.");
-    assignCacheKeys(slides);
-    imageCache={}; slideImageOverrides={};
+    const parsed=await fetchFromGemini(prompt, true); // true = use Google Search
+    if(!parsed.slides||!parsed.slides.length) throw new Error('No slides returned');
+    slides=parsed.slides; slideImageOverrides={};
+
+    // Assign unique cache keys
+    slides.forEach(s=>{ if(!s.cacheKey) s.cacheKey='ck-'+Math.random().toString(36).slice(2); });
+
     document.getElementById('caption').value=parsed.caption||''; updateCharCount();
     buildGrid();
     for(let i=0;i<slides.length;i++){
       if(slides[i]&&slides[i].layout!=='cta'&&slides[i].imageQuery){
-        if(i>=1&&i<=8){ slides[i].articleUrl=top8[i-1]?.link||''; }
-        const fallbackImg=(i>=1&&i<=8)?top8[i-1]?.extractedImage:null;
-        await fetchSmartImage(slides[i],fallbackImg);
+        await fetchSmartImage(slides[i]);
         buildGrid();
       }
     }
-    log('✨ Top 10 News Complete!','ok'); switchMode('carousel');
+    log('✨ News Carousel complete! (1 API call used)','ok');
+    switchMode('carousel');
   }catch(err){ log(`Failed: ${err.message}`,'err'); }
   setStatus('READY');
 }
@@ -931,33 +795,23 @@ LANGUAGE: ${lang}
 ${getLanguageInstruction(lang)}
 
 OUTPUT FORMAT (RAW VALID JSON ONLY. NO MARKDOWN):
-{"caption":"...","slides":[{"id":1,"layout":"news-card","title":"...","body":"...","imageQuery":"3-5 word specific Google image search for THAT slide — person + action + context","category":"BREAKING","chartData":[{"label":"Data","value":10}]}]}
+{"caption":"...","slides":[{"id":1,"layout":"news-card","title":"...","body":"...","imageQuery":"ONLY 1 or 2 exact proper nouns (Name/Place)","category":"BREAKING", "chartData": [{"label":"Data", "value":10}]}]}
 
 RULES:
-- EXACTLY 10 slides.
-- Slide 1: layout="cover".
-- Slide 3: layout="chart-bar" (MANDATORY — use real numbers from the story). Include chartData with 3-5 items.
-- Slide 5: layout="stats". body: EXACTLY 5 bullet points, each 3-4 words only, use \\n between them.
-- Slide 7: layout="timeline". body: EXACTLY 5 items, 3-4 words each, use \\n between them.
+- Exact 10 slides.
+- Slide 4: layout="chart-bar" (if there is data) or "stats".
+- Slide 6: layout="timeline" (body: exactly 4 items, 2-4 words each).
 - Slide 10: layout="cta". Rest: layout="news-card".
-- imageQuery rules (CRITICAL — this is used to find the real photo):
-- Write EXACT FULL NAME of the specific person + what they are doing + where + year
-- GOOD: "Shubman Gill batting India vs England Test 2026", "Rahul Gandhi press conference New Delhi 2026"  
-- BAD: "Indian cricket", "politician speaking", "cricket fans", "sports event" — these return wrong photos
-- For non-person slides (economy, environment): write specific event + place + year e.g. "Bengaluru flood rescue operation 2026"
-- Every slide must have a DIFFERENT imageQuery`;
-
+- If layout="chart-bar", include a "chartData" array with 2-5 items: [{"label":"Team A", "value": 150}]. Values must be numbers.`;
+  
   try{
     const parsed=await fetchFromGemini(prompt,true);
-    slides=(parsed.slides||[]).filter(s=>s&&s.id); if(!slides.length) throw new Error("No slides returned. Please try again.");
-    assignCacheKeys(slides);
-    imageCache={}; slideImageOverrides={};
+    slides=parsed.slides; slideImageOverrides={};
     document.getElementById('caption').value=parsed.caption||''; updateCharCount(); buildGrid();
     for(let i=0;i<slides.length;i++){
-      if(slides[i]&&slides[i].layout!=='cta'&&slides[i].imageQuery){
-        slides[i].articleUrl = article.link||'';
-        await fetchSmartImage(slides[i], i===0?article.extractedImage:null);
-        buildGrid();
+      if(slides[i].layout!=='cta'&&slides[i].imageQuery) { 
+        await fetchSmartImage(slides[i].id,slides[i].imageQuery,article.extractedImage,slides[i].title); 
+        buildGrid(); 
       }
     }
     log('✨ Deep Dive complete!','ok'); switchMode('carousel');
@@ -971,60 +825,37 @@ async function generateBreakingCarousel(){
   const angle=document.getElementById('breakingAngle').value;
   if(!topic) return log('ERR: Enter a breaking topic.','err');
   setStatus('BREAKING'); log(`🔴 Breaking: "${topic}"…`);
-
+  
   document.getElementById('breakingPlaceholder').style.display='none';
   const grid=document.getElementById('breakingSlidesGrid'); grid.style.display='flex';
   grid.innerHTML='<div style="color:var(--muted);text-align:center;padding:40px;">[ Generating… ]</div>';
 
-  const prompt=`You are an ELITE Breaking News Journalist. Search the web for the LATEST verified facts about: "${topic}"
+  const prompt=`You are an ELITE Breaking News Journalist. Search the web for latest verified info about: "${topic}"
 LANGUAGE: ${lang}
 ${getLanguageInstruction(lang)}
 ANGLE: ${angle}
 
 OUTPUT FORMAT (RAW VALID JSON ONLY. NO MARKDOWN):
-{"caption":"...","slides":[{"id":1,"layout":"news-card","title":"...","body":"...","imageQuery":"EXACT Google News search phrase for this slide","category":"BREAKING","chartData":[{"label":"Item","value":10}]}]}
+{"caption":"...","slides":[{"id":1,"layout":"news-card","title":"...","body":"...","imageQuery":"ONLY 1 or 2 exact proper nouns (Name/Place)","category":"BREAKING", "chartData": [{"label":"Data", "value":10}]}]}
 
-MANDATORY SLIDE STRUCTURE — EXACTLY 10 SLIDES:
-- Slide 1: layout="cover". Explosive hook title. body: 2-sentence scene-setter.
-- Slides 2, 3: layout="news-card". Key facts.
-- Slide 4: layout="chart-bar". MANDATORY. Find real numbers (votes, funds, scores, casualties, percentages). chartData: 3-5 items with real numbers. title="By The Numbers".
-- Slide 5: layout="stats". MANDATORY. body: EXACTLY 5 bullet facts, each 3-4 words only, separated by \\n. Do NOT write sentences. E.g. "₹500 crore allocated\\n3 districts affected\\n12 MLAs arrested".
-- Slide 6: layout="news-card". Deeper context.
-- Slide 7: layout="timeline". MANDATORY. body: EXACTLY 5 chronological events, each 3-4 words only, separated by \\n. E.g. "Jan 2024: Protests begin\\nMar 2024: Government responds".
-- Slide 8: layout="impact". What does this mean for people?
-- Slide 9: layout="minimal". Key takeaway quote or verdict.
-- Slide 10: layout="cta".
-
-CRITICAL imageQuery RULES — THIS IS USED TO SEARCH GOOGLE NEWS FOR THE PHOTO:
-- Write the EXACT FULL NAME of the specific person on this slide (never a nickname)
-- Add the specific action/event: "sworn in", "press conference", "arrested", "inaugurates"
-- Add location if relevant: "Kerala", "Delhi", "Parliament"
-- Add year: 2025 or 2026
-- WRONG: "Kerala CM", "new chief minister", "political leader" — these get wrong person
-- RIGHT: "VD Satheesan sworn in Kerala Chief Minister 2026"
-- RIGHT: "Narendra Modi inaugurates new parliament building Delhi 2025"
-- Each slide must have a DIFFERENT imageQuery targeting THAT slide's specific person/event`;
+RULES: EXACTLY 10 Slides.
+- Slide 4: layout="chart-bar" (if there is comparative numerical data like scores, votes, funds, etc.) or "stats".
+- Slide 6: layout="timeline" (EXACTLY 4 items, 2-4 WORDS EACH).
+- Slide 9: layout="minimal", Slide 10: layout="cta". Rest: layout="news-card".
+- If layout="chart-bar", include a "chartData" array with 2-5 items: [{"label":"Team A", "value": 150}]. Values must be numbers.`;
 
   try{
     const parsed=await fetchFromGemini(prompt,true);
-    slides=(parsed.slides||[]).filter(s=>s&&s.id);
-    if(!slides.length) throw new Error('No slides returned. Please try again.');
-    assignCacheKeys(slides);
-    imageCache={}; slideImageOverrides={};
+    slides=parsed.slides; slideImageOverrides={};
     document.getElementById('caption').value=parsed.caption||''; updateCharCount();
-    // Force slide 1 to magazine layout
-    if(slides[0]) slides[0].layout='magazine';
     buildGrid(grid);
     for(let i=0;i<slides.length;i++){
-      if(slides[i]&&slides[i].layout!=='cta'&&slides[i].imageQuery){
-        await fetchSmartImage(slides[i]); buildGrid(grid);
+      if(slides[i].layout!=='cta'&&slides[i].imageQuery){
+        await fetchSmartImage(slides[i].id,slides[i].imageQuery,null,slides[i].title); buildGrid(grid);
       }
     }
     log('🔴 Breaking Carousel complete!','ok');
-  }catch(err){
-    log(`Breaking failed: ${err.message}`,'err');
-    grid.innerHTML=`<div style="color:red;padding:20px;font-family:monospace">❌ ${err.message}<br><br>Please try again.</div>`;
-  }
+  }catch(err){ log(`Breaking failed: ${err.message}`,'err'); grid.innerHTML=`<div style="color:red;padding:20px;">Error: ${err.message}</div>`; }
   setStatus('READY');
 }
 
@@ -1038,8 +869,8 @@ async function applyUrlOverride(){
   const s=slides[selectedSlide]; log(`🖼️ Loading image from URL via proxy…`);
   try{
     const proxyUrl = `https://avi-autoposter.onrender.com/api/proxy_image?url=${encodeURIComponent(url)}`;
-    const img=await loadImg(proxyUrl, s.cacheKey, 15000);
-    slideImageOverrides[s.cacheKey]=img;
+    const img=await loadImg(proxyUrl,s.id,15000);
+    slideImageOverrides[s.id]=img; imageCache[s.id]=img;
     document.getElementById('overridePreview').src=url;
     buildGrid(); log(`✅ Custom URL image applied to slide ${selectedSlide+1}.`,'ok');
   }catch(e){ log(`❌ URL load failed. (Check backend): ${e.message}`,'err'); }
@@ -1059,7 +890,7 @@ function previewOverrideUrl(){
 
 function clearImageOverride(){
   if(selectedSlide===null) return; const s=slides[selectedSlide];
-  delete slideImageOverrides[s.cacheKey]; delete imageCache[s.cacheKey];
+  delete slideImageOverrides[s.id]; delete imageCache[s.id];
   document.getElementById('overridePreview').src='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
   document.getElementById('overrideUrlInput').value='';
   buildGrid(); log(`🗑️ Image override cleared.`,'warn');
@@ -1072,7 +903,7 @@ document.getElementById('overrideFileInput').addEventListener('change',async e=>
     const img=new Image();
     img.onload=()=>{
       const s=slides[selectedSlide];
-      slideImageOverrides[s.cacheKey]=img; imageCache[s.cacheKey]=img;
+      slideImageOverrides[s.id]=img; imageCache[s.id]=img;
       document.getElementById('overridePreview').src=ev.target.result;
       buildGrid(); log(`✅ Custom file image applied to slide ${selectedSlide+1}.`,'ok');
     };
@@ -1081,14 +912,30 @@ document.getElementById('overrideFileInput').addEventListener('change',async e=>
   reader.readAsDataURL(e.target.files[0]); e.target.value='';
 });
 
-function _oldSelectSlide_removed(i){ /* replaced by new selectSlide with chart editor */ }
+function selectSlide(i){
+  const all=document.querySelectorAll('canvas.preview'); all.forEach(c=>c.classList.remove('selected'));
+  if(selectedSlide===i){selectedSlide=null;document.getElementById('slideEditor').style.display='none';return;}
+  selectedSlide=i; if(all[i]) all[i].classList.add('selected');
+  const s=slides[i];
+  document.getElementById('editorTitle').textContent=`Editing Slide ${i+1}`;
+  document.getElementById('editTitle').value=s.title||'';
+  document.getElementById('editBody').value=s.body||'';
+  document.getElementById('editImgSource').value=s.imageQuery||'';
+  document.getElementById('editLayout').value=s.layout||'news-card';
+  document.getElementById('slideEditor').style.display='block';
+
+  document.getElementById('imgOverridePanel').style.display='block';
+  const existingOv=slideImageOverrides[s.id];
+  const prevEl=document.getElementById('overridePreview');
+  document.getElementById('overrideUrlInput').value='';
+  if(existingOv?.src) prevEl.src=existingOv.src; else prevEl.src='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+}
 
 function applyEdit(field,val){ if(selectedSlide===null) return; slides[selectedSlide][field]=val; buildGrid(); }
 async function forceRefreshImage(){
   if(selectedSlide===null) return;
   const s=slides[selectedSlide]; s.imageQuery=document.getElementById('editImgSource').value;
-  delete imageCache[s.cacheKey];
-  await fetchSmartImage(s); buildGrid();
+  await fetchSmartImage(s.id,s.imageQuery); buildGrid();
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1118,8 +965,7 @@ function drawSlide(canvas,slide,idx){
   ctx.fillStyle=th.bg; ctx.fillRect(0,0,W,H);
   
   const layout=slide.layout||'cover';
-  const ck=slide.cacheKey||slide.id;
-  const img=slideImageOverrides[ck]||imageCache[ck];
+  const img=slideImageOverrides[slide.id]||imageCache[slide.id];
   
   try{
     if(layout==='news-card') drawNewsCard(ctx,slide,idx,W,H,th,img,TF,BF,isLast);
@@ -1141,36 +987,13 @@ function drawSlide(canvas,slide,idx){
 
 function getCategoryStyle(cat){
   const c=(cat||'').toUpperCase();
-  // Crime & Law
-  if(c.includes('CRIME')||c.includes('MURDER')||c.includes('ARREST')||c.includes('ACCUSED')) return {bg:'#7b1fa2',text:'#fff',icon:'🚨'};
-  if(c.includes('VERDICT')||c.includes('COURT')||c.includes('JUSTICE')||c.includes('LAW')) return {bg:'#4a148c',text:'#fff',icon:'⚖️'};
-  // Human Interest
-  if(c.includes('HUMAN')||c.includes('INSPIRE')||c.includes('HERO')||c.includes('STORY')) return {bg:'#e65100',text:'#fff',icon:'❤️'};
-  if(c.includes('HEALTH')||c.includes('MEDICAL')||c.includes('HOSPITAL')) return {bg:'#00838f',text:'#fff',icon:'🏥'};
-  // Politics
-  if(c.includes('ELECTION')||c.includes('VOTE')||c.includes('POLL')) return {bg:'#1a237e',text:'#fff',icon:'🗳️'};
-  if(c.includes('POLITICS')||c.includes('POLITICAL')||c.includes('GOVERNMENT')||c.includes('GOVT')) return {bg:'#283593',text:'#fff',icon:'🏛️'};
-  if(c.includes('PARLIAMENT')||c.includes('ASSEMBLY')||c.includes('MINISTER')) return {bg:'#1b5e20',text:'#fff',icon:'🇮🇳'};
-  // Economy & Business
-  if(c.includes('ECONOMY')||c.includes('MARKET')||c.includes('STOCK')||c.includes('FINANCE')) return {bg:'#004d40',text:'#fff',icon:'📈'};
-  if(c.includes('BUSINESS')||c.includes('COMPANY')||c.includes('CORPORATE')) return {bg:'#0d47a1',text:'#fff',icon:'💼'};
-  // Sports
-  if(c.includes('CRICKET')||c.includes('IPL')) return {bg:'#bf360c',text:'#fff',icon:'🏏'};
-  if(c.includes('SPORT')||c.includes('MATCH')||c.includes('GAME')||c.includes('FOOTBALL')) return {bg:'#b56000',text:'#fff',icon:'🏆'};
-  // Tech & Science
-  if(c.includes('TECH')||c.includes('AI')||c.includes('DIGITAL')) return {bg:'#00408b',text:'#fff',icon:'💻'};
-  if(c.includes('SCIENCE')||c.includes('SPACE')||c.includes('ISRO')) return {bg:'#1a237e',text:'#fff',icon:'🚀'};
-  // War & Conflict
-  if(c.includes('WAR')||c.includes('ATTACK')||c.includes('MILITARY')||c.includes('ARMY')) return {bg:'#b71c1c',text:'#fff',icon:'⚔️'};
-  if(c.includes('TERROR')||c.includes('BLAST')||c.includes('BOMB')) return {bg:'#c62828',text:'#fff',icon:'💥'};
-  // Breaking
-  if(c.includes('BREAKING')||c.includes('ALERT')||c.includes('URGENT')) return {bg:'#e60026',text:'#fff',icon:'🔴'};
-  // Environment
-  if(c.includes('CLIMATE')||c.includes('ENVIRONMENT')||c.includes('FLOOD')||c.includes('WEATHER')) return {bg:'#2e7d32',text:'#fff',icon:'🌿'};
-  // Education & Social
-  if(c.includes('EDUCATION')||c.includes('SCHOOL')||c.includes('STUDENT')) return {bg:'#4527a0',text:'#fff',icon:'📚'};
-  if(c.includes('SOCIAL')||c.includes('COMMUNITY')||c.includes('PEOPLE')) return {bg:'#f57f17',text:'#000',icon:'👥'};
-  // Default
+  if(c.includes('WAR')||c.includes('ATTACK')||c.includes('CRISIS')) return {bg:'#c41e3a',text:'#fff',icon:'⚔️'};
+  if(c.includes('BREAKING')||c.includes('ALERT')) return {bg:'#e60026',text:'#fff',icon:'🔴'};
+  if(c.includes('ELECTION')||c.includes('VOTE')) return {bg:'#1a237e',text:'#fff',icon:'🏛️'};
+  if(c.includes('MARKET')||c.includes('ECONOMY')) return {bg:'#0d5c2e',text:'#fff',icon:'📈'};
+  if(c.includes('SPORT')||c.includes('MATCH')||c.includes('IPL')) return {bg:'#b56000',text:'#fff',icon:'🏆'};
+  if(c.includes('TECH')||c.includes('AI')) return {bg:'#00408b',text:'#fff',icon:'💻'};
+  if(c.includes('ARREST')||c.includes('VERDICT')) return {bg:'#5b1a8c',text:'#fff',icon:'⚖️'};
   return {bg:'#c41e3a',text:'#fff',icon:'📰'};
 }
 
@@ -1178,64 +1001,31 @@ function drawNewsCard(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
   const nc={bg:'#fafaf5',bg2:'#f0ece0',text:'#13120e',sub:'#4a3f35',panel:'#fff',dark:'#13120e'};
   const catStyle=getCategoryStyle(slide.category||'NEWS');
   ctx.fillStyle=nc.bg; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=catStyle.bg; ctx.fillRect(0,0,W,18);
+  
+  const cat=(slide.category||'NEWS').toUpperCase();
+  ctx.fillStyle=nc.dark; ctx.font=`900 32px ${TF}`; ctx.textBaseline='top';
+  ctx.fillText('LIVE', 58, 34);
+  ctx.fillStyle=catStyle.bg; ctx.fillText(` ${cat}`, 58+ctx.measureText('LIVE').width+2, 34);
+  ctx.textBaseline='alphabetic';
 
-  // Top accent bar
-  ctx.fillStyle=catStyle.bg; ctx.fillRect(0,0,W,14);
+  const imgH=380;
+  if(img){ ctx.save(); rr(ctx,58,100,W-116,imgH,12); ctx.clip(); drawImgCover(ctx,img,58,100,W-116,imgH); ctx.restore(); }
+  else{ fillFallbackBg(ctx,W,imgH,{bg2:'#e8e0d4',panel:'#d8d0c4',accent:catStyle.bg},58,100); }
 
-  // Image area
-  const imgH=400;
-  if(img){ ctx.save(); rr(ctx,52,36,W-104,imgH,14); ctx.clip(); drawImgCover(ctx,img,52,36,W-104,imgH); ctx.restore(); }
-  else{ ctx.fillStyle=nc.bg2; rr(ctx,52,36,W-104,imgH,14); ctx.fill(); fillFallbackBg(ctx,W-104,imgH,{bg2:'#e8e0d4',panel:'#d8d0c4',accent:catStyle.bg},52,36); }
+  ctx.fillStyle=catStyle.bg; rr(ctx,58,498,ctx.measureText(`${catStyle.icon} ${cat}`).width+40,38,5); ctx.fill();
+  ctx.fillStyle=catStyle.text; ctx.font=`800 17px ${TF}`; ctx.textBaseline='middle';
+  ctx.fillText(`${catStyle.icon} ${cat}`,74,517); ctx.textBaseline='alphabetic';
 
-  // ── CREATIVE TICKER ───────────────────────────────────────
-  // Shows: LOCATION • SOURCE  (e.g. "KERALA • NDTV" or "NEW DELHI • THE HINDU")
-  const ticker = (slide.ticker||slide.location||'INDIA').toUpperCase();
-  const srcName = (slide.source||'LIVE NEWS').toUpperCase();
-  const tickerText = `📍 ${ticker}`;
-  const tickerBg = catStyle.bg+'22';
-  ctx.fillStyle=tickerBg;
-  ctx.fillRect(52, 36+imgH, W-104, 46);
-  // Scrolling ticker style — left badge
-  ctx.fillStyle=catStyle.bg; ctx.fillRect(52,36+imgH,6,46);
-  ctx.fillStyle=catStyle.bg; ctx.font=`800 17px ${BF}`; ctx.textBaseline='middle';
-  ctx.fillText(tickerText, 72, 36+imgH+23);
-  // Right: source name
-  ctx.fillStyle=nc.sub; ctx.font=`600 15px ${BF}`; ctx.textAlign='right';
-  ctx.fillText(srcName, W-60, 36+imgH+23);
-  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  let cy=556;
+  cy=wrapText(ctx,slide.title,58,cy,W-116,72,`800 60px ${TF}`,nc.text);
+  ctx.fillStyle=catStyle.bg; ctx.fillRect(58,cy+10,100,5); cy+=36;
+  wrapText(ctx,slide.body,58,cy,W-116,42,`400 32px ${BF}`,nc.sub);
 
-  // ── CREATIVE CATEGORY BADGE ───────────────────────────────
-  const cat = (slide.category||'NEWS').toUpperCase();
-  const badgeY = 36+imgH+62;
-  ctx.fillStyle=catStyle.bg;
-  rr(ctx,52,badgeY,ctx.measureText(`${catStyle.icon} ${cat}`).width+40,36,5); ctx.fill();
-  ctx.fillStyle=catStyle.text; ctx.font=`800 16px ${TF}`; ctx.textBaseline='middle';
-  ctx.fillText(`${catStyle.icon} ${cat}`, 68, badgeY+18); ctx.textBaseline='alphabetic';
-
-  // Title
-  let cy = badgeY+54;
-  cy=wrapText(ctx,slide.title,52,cy,W-104,72,`800 56px ${TF}`,nc.text);
-
-  // Divider
-  ctx.fillStyle=catStyle.bg; ctx.fillRect(52,cy+8,90,4); cy+=28;
-
-  // Body
-  wrapText(ctx,slide.body,52,cy,W-104,40,`400 30px ${BF}`,nc.sub);
-
-  // Footer
   ctx.fillStyle=nc.dark; ctx.fillRect(0,H-72,W,72);
   const handle=document.getElementById('handleText')?.value||'@newspage';
-  let ncTextX=66;
-  if(avatarImg){
-    const aSize=46, aX=66, aY=H-36-aSize/2;
-    ctx.save(); ctx.beginPath(); ctx.arc(aX+aSize/2,aY+aSize/2,aSize/2,0,Math.PI*2); ctx.clip();
-    drawImgCover(ctx,avatarImg,aX,aY,aSize,aSize); ctx.restore();
-    ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.arc(aX+aSize/2,aY+aSize/2,aSize/2,0,Math.PI*2); ctx.stroke();
-    ncTextX=aX+aSize+14;
-  }
-  ctx.fillStyle='#ffffff'; ctx.font=`600 20px ${BF}`; ctx.textBaseline='middle';
-  ctx.fillText(handle,ncTextX,H-36); ctx.textBaseline='alphabetic';
+  ctx.fillStyle='#ffffff'; ctx.font=`600 20px ${BF}`; ctx.textBaseline='middle'; ctx.fillText(handle,66,H-36);
+  ctx.textBaseline='alphabetic';
 }
 
 function drawStats(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
@@ -1368,34 +1158,12 @@ function drawGlass(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
 }
 
 function drawMagazine(ctx,slide,idx,W,H,th,img,TF,BF,isLast){
-  // Full bleed image top 60%
-  if(img){ ctx.save(); ctx.beginPath(); ctx.rect(0,0,W,H*0.60); ctx.clip(); drawImgCover(ctx,img,0,0,W,H*0.60); ctx.restore(); }
-  else { fillFallbackBg(ctx,W,H*0.60,th); }
-  // Gradient fade at bottom of image
-  const grad=ctx.createLinearGradient(0,H*0.38,0,H*0.60);
-  grad.addColorStop(0,'rgba(0,0,0,0)'); grad.addColorStop(1,th.bg);
-  ctx.fillStyle=grad; ctx.fillRect(0,H*0.38,W,H*0.22);
-  // Text area below
-  ctx.fillStyle=th.bg; ctx.fillRect(0,H*0.60,W,H*0.40);
-  // Category badge
-  const cat=(slide.category||'NEWS').toUpperCase();
-  const catStyle=getCategoryStyle(slide.category||'NEWS');
-  ctx.fillStyle=catStyle.bg; rr(ctx,58,H*0.61,ctx.measureText(cat).width+48,38,5); ctx.fill();
-  ctx.fillStyle='#fff'; ctx.font=`800 17px ${TF}`; ctx.textBaseline='middle';
-  ctx.fillText(cat, 78, H*0.61+19); ctx.textBaseline='alphabetic';
-  // Ticker / location line
-  const ticker=(slide.ticker||slide.location||'').toUpperCase();
-  if(ticker){
-    ctx.fillStyle=th.accent; ctx.font=`700 16px ${BF}`; ctx.textBaseline='middle';
-    ctx.fillText(`📍 ${ticker}`, 58, H*0.61+62); ctx.textBaseline='alphabetic';
-  }
-  // Title — max 2 lines, 5-6 words, large font
-  const titleY = ticker ? H*0.61+88 : H*0.61+54;
-  const titleEnd = wrapText(ctx,slide.title,58,titleY,W-116,82,`900 72px ${TF}`,th.text);
-  // Divider
-  ctx.fillStyle=catStyle.bg; ctx.fillRect(58,titleEnd+10,80,4);
-  // Body — 20-25 words, compact
-  wrapText(ctx,slide.body,58,titleEnd+30,W-116,44,`400 32px ${BF}`,th.sub||'#94a3b8');
+  if(img){ ctx.save(); ctx.beginPath(); ctx.rect(0,0,W,H*0.52); ctx.clip(); drawImgCover(ctx,img,0,0,W,H*0.52); ctx.restore(); }
+  else{ ctx.fillStyle=th.bg2||'#1a1a24'; ctx.fillRect(0,0,W,H*0.52); }
+  ctx.fillStyle=th.bg; ctx.fillRect(0,H*0.52,W,H*0.48);
+  let cy=H*0.60; cy=wrapText(ctx,slide.title,60,cy,W-120,88,`800 72px ${TF}`,th.text);
+  ctx.fillStyle=th.sub||'#94a3b8'; ctx.fillRect(60,cy+10,W-120,2);
+  wrapText(ctx,slide.body,60,cy+38,W-120,48,`400 36px ${BF}`,th.sub||'#94a3b8');
   drawFooterDark(ctx,th,W,H,isLast,TF,BF);
 }
 
@@ -1446,25 +1214,12 @@ function drawCTA(ctx,slide,idx,W,H,th,img,TF,BF){
   ctx.fillStyle=th.accent; ctx.fillRect(W/2-60,cy+18,120,6); cy+=70;
   ctx.fillStyle=th.accent; rr(ctx,W/2-200,cy+40,400,82,41); ctx.fill();
   ctx.fillStyle='#fff'; ctx.font=`800 30px ${TF}`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('FOLLOW & SHARE',W/2,cy+81);
-  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
-  drawFooterDark(ctx,th,W,H,false,TF,BF);
 }
 
 function drawFooterDark(ctx,th,W,H,isLast,TF,BF){
   ctx.fillStyle=(th.bg2||'#1a1a24')+'ee'; ctx.fillRect(0,H-74,W,74);
   const handle=document.getElementById('handleText')?.value||'@yourhandle';
-  let textX=60;
-  if(avatarImg){
-    const aSize=48, aX=60, aY=H-37-aSize/2;
-    ctx.save();
-    ctx.beginPath(); ctx.arc(aX+aSize/2,aY+aSize/2,aSize/2,0,Math.PI*2); ctx.clip();
-    drawImgCover(ctx,avatarImg,aX,aY,aSize,aSize);
-    ctx.restore();
-    ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.arc(aX+aSize/2,aY+aSize/2,aSize/2,0,Math.PI*2); ctx.stroke();
-    textX=aX+aSize+14;
-  }
-  ctx.fillStyle=th.sub||'#94a3b8'; ctx.font=`600 20px ${BF}`; ctx.textBaseline='middle'; ctx.fillText(handle,textX,H-37); ctx.textBaseline='alphabetic';
+  ctx.fillStyle=th.sub||'#94a3b8'; ctx.font=`600 20px ${BF}`; ctx.textBaseline='middle'; ctx.fillText(handle,60,H-37); ctx.textBaseline='alphabetic';
 }
 
 // 15% TOP ANCHOR CROP: PREVENTS HEAD CUTOFFS!
@@ -1537,10 +1292,8 @@ async function verifyToken(){
         const r3=await fetch(`https://graph.facebook.com/v21.0/${igId}?fields=id,username,name&access_token=${pageToken}`);
         const d3=await r3.json();
         document.getElementById('userId').value=igId;
-        // Keep User Token in accessToken field (for FB /me/accounts)
-        // Store Page Token in hidden userToken field (for IG API)
         document.getElementById('userToken').value=pageToken;
-        log(`✅ Instagram Business: @${d3.username||igId} (ID: ${igId})`,'ok');
+        log(`✅ Instagram Business: @${d3.username||igId}`,'ok');
         log(`✅ Page Token ready for: ${page.name}`,'ok');
         setStatus('AUTHED');
         saveSettings();
@@ -1552,159 +1305,70 @@ async function verifyToken(){
 }
 
 async function handleRun(){
-  const userId=document.getElementById('userId').value.trim();
-  const token=document.getElementById('accessToken').value.trim();
-  const caption=document.getElementById('caption').value.trim();
-  if(!userId||!token) return log('ERR: Click AUTH first to link your Instagram.','err');
+  const userId=document.getElementById('userId').value.trim(), token=document.getElementById('accessToken').value.trim(), caption=document.getElementById('caption').value.trim();
+  if(!userId||!token) return log('ERR: Missing IG credentials. Click AUTH first.','err');
   if(!slides.length) return log('ERR: Generate slides first.','err');
   const btn=document.getElementById('runBtn'); btn.disabled=true; btn.textContent='⏳ Deploying…'; setStatus('DEPLOYING…');
   try{
-    log('─── DEPLOY START ───','warn');
-
-    // Upload all slides to Cloudinary
-    const urls=[];
+    log('─── DEPLOY START ───','warn'); const urls=[];
     for(let i=0;i<slides.length;i++){
       log(`☁️ Uploading slide ${i+1} to Cloudinary…`);
-      const cv=document.createElement('canvas'); cv.width=CANVAS_W; cv.height=CANVAS_H;
-      drawSlide(cv,slides[i],i);
+      const cv=document.createElement('canvas'); cv.width=CANVAS_W; cv.height=CANVAS_H; drawSlide(cv,slides[i],i);
       const b64=cv.toDataURL('image/jpeg',.93).split(',')[1];
       urls.push(await uploadToCloudinary(b64));
     }
-    log(`✅ ${urls.length} slides uploaded`,'ok');
-
-    // Create Instagram carousel item containers
-    // Use graph.facebook.com (not graph.instagram.com) with Page token
     const childIds=[];
     for(let i=0;i<urls.length;i++){
-      log(`📦 Creating IG container ${i+1}/${urls.length}…`);
-      const igToken=document.getElementById('userToken').value||token;
-      const p=new URLSearchParams({image_url:urls[i],is_carousel_item:'true',access_token:igToken});
+      const p=new URLSearchParams({image_url:urls[i],is_carousel_item:'true',access_token:token});
       const r=await fetch(`https://graph.facebook.com/v21.0/${userId}/media`,{method:'POST',body:p});
-      const d=await r.json();
-      if(d.error) throw new Error(`Container error: ${d.error.message}`);
-      childIds.push(d.id);
+      const d=await r.json(); if(d.error) throw new Error(d.error.message); childIds.push(d.id);
     }
-
-    // Create carousel container
-    const p2=new URLSearchParams({media_type:'CAROUSEL',children:childIds.join(','),caption,access_token:igToken});
+    const p2=new URLSearchParams({media_type:'CAROUSEL',children:childIds.join(','),caption,access_token:token});
     const r2=await fetch(`https://graph.facebook.com/v21.0/${userId}/media`,{method:'POST',body:p2});
-    const d2=await r2.json();
-    if(d2.error) throw new Error(`Carousel error: ${d2.error.message}`);
-    const carouselId=d2.id;
-    log(`🎠 Carousel container created. Waiting for Meta…`,'ok');
-
-    // Wait for Meta to process
+    const d2=await r2.json(); if(d2.error) throw new Error(d2.error.message);
+    const carouselId=d2.id; log(`🎠 Carousel container created. Wait for Meta processing…`,'ok');
+    
     let ready=false;
-    for(let i=0;i<24;i++){
+    for(let i=0;i<20;i++){
+      const r3=await fetch(`https://graph.facebook.com/v21.0/${carouselId}?fields=status_code&access_token=${token}`);
+      const d3=await r3.json(); if(d3.status_code==='FINISHED'){ready=true;break;}
+      if(d3.status_code==='ERROR') throw new Error('Meta rejected the container.');
       await new Promise(r=>setTimeout(r,5000));
-      const r3=await fetch(`https://graph.facebook.com/v21.0/${carouselId}?fields=status_code&access_token=${igToken}`);
-      const d3=await r3.json();
-      if(d3.status_code==='FINISHED'){ ready=true; break; }
-      if(d3.status_code==='ERROR') throw new Error(`Meta rejected carousel: ${JSON.stringify(d3)}`);
-      log(`  Meta status: ${d3.status_code||'processing'}…`);
     }
-    if(!ready) throw new Error('Meta processing timeout (2 min). Try again.');
-
-    // Publish
-    const p4=new URLSearchParams({creation_id:carouselId,access_token:igToken});
+    if(!ready) throw new Error('Meta processing timeout.');
+    const p4=new URLSearchParams({creation_id:carouselId,access_token:token});
     const r4=await fetch(`https://graph.facebook.com/v21.0/${userId}/media_publish`,{method:'POST',body:p4});
-    const d4=await r4.json();
-    if(d4.error) throw new Error(`Publish error: ${d4.error.message}`);
-    log(`🎉 SUCCESS! Instagram Post ID: ${d4.id}`,'ok'); setStatus('POSTED ✓');
-  }catch(err){
-    log(`❌ DEPLOY ERROR: ${err.message}`,'err'); setStatus('DEPLOY FAILED');
-  }
+    const d4=await r4.json(); if(d4.error) throw new Error(d4.error.message);
+    log(`🎉 SUCCESS! Post ID: ${d4.id}`,'ok'); setStatus('POSTED ✓');
+  }catch(err){ log(`❌ DEPLOY ERROR: ${err.message}`,'err'); setStatus('DEPLOY FAILED'); }
   btn.disabled=false; btn.textContent='🚀 Deploy to Instagram';
 }
 
 /* ═══════════════════════════════════════════════════════════
-   FACEBOOK PAGE DEPLOY
+   AUTOPILOT
 ═══════════════════════════════════════════════════════════ */
-async function handleFBRun(){
-  const token=document.getElementById('accessToken').value.trim();
-  const caption=document.getElementById('caption').value.trim();
-  if(!token) return log('ERR: Paste Meta token first then click AUTH.','err');
-  if(!slides.length) return log('ERR: Generate slides first.','err');
-  const cn=document.getElementById('cloudName').value.trim();
-  const pr=document.getElementById('uploadPreset').value.trim();
-  if(!cn||!pr) return log('ERR: Cloudinary name + preset required.','err');
-
-  const btn=document.querySelector('button[onclick="handleFBRun()"]');
-  btn.disabled=true; btn.textContent='⏳ Deploying to Facebook…'; setStatus('FB DEPLOY…');
-  log('─── FACEBOOK DEPLOY START ───','warn');
-
-  try{
-    // 1. Get Facebook Page ID and Page Token
-    // Use original user token (page token can't access /me/accounts)
-    const fbUserToken=document.getElementById('userToken').value||token;
-    const meRes=await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${fbUserToken}`);
-    const meData=await meRes.json();
-    if(meData.error) throw new Error(meData.error.message);
-    const page=meData.data?.[0];
-    if(!page) throw new Error('No Facebook Page found. Make sure token has pages_show_list permission.');
-    const pageId=page.id;
-    const pageToken=page.access_token; // Always use Page Token, not User Token
-    log(`📘 Page: ${page.name} (${pageId})`,'ok');
-
-    // 2. Upload ALL slides to Cloudinary
-    const urls=[];
-    for(let i=0;i<slides.length;i++){
-      log(`☁️ Uploading slide ${i+1}/${slides.length}…`);
-      const cv=document.createElement('canvas'); cv.width=CANVAS_W; cv.height=CANVAS_H;
-      drawSlide(cv,slides[i],i);
-      const b64=cv.toDataURL('image/jpeg',.93).split(',')[1];
-      const form=new FormData();
-      form.append('file',`data:image/jpeg;base64,${b64}`);
-      form.append('upload_preset',pr);
-      const r=await fetch(`https://api.cloudinary.com/v1_1/${cn}/image/upload`,{method:'POST',body:form});
-      const d=await r.json(); if(d.error) throw new Error(d.error.message);
-      urls.push(d.secure_url);
-    }
-    log(`✅ ${urls.length} slides uploaded to Cloudinary`,'ok');
-
-    // 3. Upload each photo to FB as unpublished
-    const photoIds=[];
-    for(const imgUrl of urls){
-      // Use JSON body to avoid URL param size limits
-      const r=await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({url:imgUrl, published:false, access_token:pageToken})
-      });
-      const d=await r.json();
-      if(d.error) throw new Error(`Photo upload: ${d.error.message}`);
-      photoIds.push(d.id);
-    }
-    log(`✅ ${photoIds.length} photos staged`,'ok');
-
-    // 4. Publish as multi-photo post using JSON body
-    const attachedMedia=photoIds.map(id=>({media_fbid:id}));
-    const postBody={
-      message: caption.slice(0,2200), // FB caption limit
-      attached_media: attachedMedia,
-      access_token: pageToken
-    };
-    const postR=await fetch(`https://graph.facebook.com/v21.0/${pageId}/feed`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(postBody)
-    });
-    const postD=await postR.json();
-    if(postD.error) throw new Error(`Post: ${postD.error.message}`);
-
-    log(`🎉 Facebook post published! ID: ${postD.id}`,'ok'); setStatus('FB POSTED ✓');
-  }catch(err){
-    log(`❌ Facebook deploy error: ${err.message}`,'err'); setStatus('FB FAILED');
+async function toggleAutopilot(){
+  const btn=document.getElementById('autopilotBtn'), badge=document.getElementById('autoStatus');
+  if(autopilotTimer){
+    clearInterval(autopilotTimer); autopilotTimer=null; btn.textContent='▶ Start Autopilot'; btn.classList.remove('btn-ap'); badge.textContent='OFF'; badge.style.color='var(--muted)'; log('🛑 Autopilot disabled.','warn');
+  }else{
+    if(!document.getElementById('userId').value||!document.getElementById('geminiKey').value) return log('ERR: Auth + API keys required.','err');
+    btn.textContent='⏹ Stop Autopilot'; btn.classList.add('btn-ap'); badge.textContent='ACTIVE'; badge.style.color='var(--accent4)'; log('🤖 Autopilot ARMED.','ok');
+    autopilotTimer=setInterval(runAutopilotCycle,7200000); runAutopilotCycle();
   }
-  btn.disabled=false; btn.textContent='📘 Deploy to Facebook Page';
 }
+async function runAutopilotCycle(){
+  log('🤖 Autopilot cycle started…','warn');
+  try{ switchMode('news'); await fetchLiveNews(); await generateTop10NewsCarousel(); await handleRun(); log('🤖 Cycle done. Next in 2 hours.','ok'); }catch(err){ log(`🤖 Cycle failed: ${err.message}`,'err'); }
+}
+
+
 async function deployBoth(){
   const btn=document.querySelector('button[onclick="deployBoth()"]');
   btn.disabled=true; btn.textContent='⏳ Deploying to both…';
   log('⚡ Deploying to Instagram + Facebook…','warn');
-
-  // Upload slides once to Cloudinary, reuse URLs for both platforms
   const token=document.getElementById('accessToken').value.trim();
+  const igToken=document.getElementById('userToken').value||token;
   const caption=document.getElementById('caption').value.trim();
   const cn=document.getElementById('cloudName').value.trim();
   const pr=document.getElementById('uploadPreset').value.trim();
@@ -1712,10 +1376,8 @@ async function deployBoth(){
   if(!token||!userId) return log('ERR: Click AUTH first.','err');
   if(!slides.length) return log('ERR: Generate slides first.','err');
   if(!cn||!pr) return log('ERR: Cloudinary name + preset required.','err');
-
   try{
-    // Upload all slides once
-    log('☁️ Uploading slides to Cloudinary…');
+    log('☁️ Uploading slides…');
     const urls=[];
     for(let i=0;i<slides.length;i++){
       log(`  Slide ${i+1}/${slides.length}…`);
@@ -1730,304 +1392,109 @@ async function deployBoth(){
       urls.push(d.secure_url);
     }
     log(`✅ ${urls.length} slides uploaded`,'ok');
-
-    // ── Instagram ──────────────────────────────────────────
+    // Instagram
     log('📸 Posting to Instagram…');
     try{
-      const childIds=[];
-      for(let i=0;i<urls.length;i++){
-        const igToken=document.getElementById('userToken').value||token;
-      const p=new URLSearchParams({image_url:urls[i],is_carousel_item:'true',access_token:igToken});
+      const ids=[];
+      for(const u of urls){
+        const p=new URLSearchParams({image_url:u,is_carousel_item:'true',access_token:igToken});
         const r=await fetch(`https://graph.facebook.com/v21.0/${userId}/media`,{method:'POST',body:p});
-        const d=await r.json(); if(d.error) throw new Error(d.error.message);
-        childIds.push(d.id);
+        const d=await r.json(); if(d.error) throw new Error(d.error.message); ids.push(d.id);
       }
-      const p2=new URLSearchParams({media_type:'CAROUSEL',children:childIds.join(','),caption,access_token:igToken});
+      const p2=new URLSearchParams({media_type:'CAROUSEL',children:ids.join(','),caption,access_token:igToken});
       const r2=await fetch(`https://graph.facebook.com/v21.0/${userId}/media`,{method:'POST',body:p2});
       const d2=await r2.json(); if(d2.error) throw new Error(d2.error.message);
-      // Wait for processing
       let ready=false;
       for(let i=0;i<24;i++){
         await new Promise(r=>setTimeout(r,5000));
-        const r3=await fetch(`https://graph.facebook.com/v21.0/${d2.id}?fields=status_code&access_token=${token}`);
+        const r3=await fetch(`https://graph.facebook.com/v21.0/${d2.id}?fields=status_code&access_token=${igToken}`);
         const d3=await r3.json();
         if(d3.status_code==='FINISHED'){ready=true;break;}
-        if(d3.status_code==='ERROR') throw new Error('Meta rejected carousel');
+        if(d3.status_code==='ERROR') throw new Error('Meta rejected');
       }
-      if(!ready) throw new Error('IG processing timeout');
-      const p4=new URLSearchParams({creation_id:d2.id,access_token:token});
+      if(!ready) throw new Error('IG timeout');
+      const p4=new URLSearchParams({creation_id:d2.id,access_token:igToken});
       const r4=await fetch(`https://graph.facebook.com/v21.0/${userId}/media_publish`,{method:'POST',body:p4});
       const d4=await r4.json(); if(d4.error) throw new Error(d4.error.message);
       log(`✅ Instagram posted! ID: ${d4.id}`,'ok');
-    }catch(igErr){
-      log(`❌ Instagram failed: ${igErr.message}`,'err');
-    }
-
-    // ── Facebook ───────────────────────────────────────────
+    }catch(e){ log(`❌ Instagram failed: ${e.message}`,'err'); }
+    // Facebook
     log('📘 Posting to Facebook…');
     try{
-      // Use original user token for accounts lookup (page token doesn't have accounts access)
-      const fbUserToken=document.getElementById('userToken').value||token;
-      const meRes=await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${fbUserToken}`);
+      const meRes=await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${token}`);
       const meData=await meRes.json();
       if(meData.error) throw new Error(meData.error.message);
       const page=meData.data?.[0];
       if(!page) throw new Error('No FB Page found');
-      const pageId=page.id; const pageToken=page.access_token;
-      const photoIds=[];
-      for(const imgUrl of urls){
-        const r=await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`,{
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({url:imgUrl,published:false,access_token:pageToken})
-        });
-        const d=await r.json(); if(d.error) throw new Error(d.error.message);
-        photoIds.push(d.id);
+      const pid=page.id; const ptok=page.access_token;
+      const pids=[];
+      for(const u of urls){
+        const r=await fetch(`https://graph.facebook.com/v21.0/${pid}/photos`,{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          json:{url:u,published:false,access_token:ptok}});
+        // Use form data for FB photos
+        const fd=new URLSearchParams({url:u,published:'false',access_token:ptok});
+        const r2=await fetch(`https://graph.facebook.com/v21.0/${pid}/photos`,{method:'POST',body:fd});
+        const d=await r2.json(); if(d.error) throw new Error(d.error.message);
+        pids.push(d.id);
       }
-      const postR=await fetch(`https://graph.facebook.com/v21.0/${pageId}/feed`,{
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({message:caption.slice(0,2200),attached_media:photoIds.map(id=>({media_fbid:id})),access_token:pageToken})
-      });
+      const postParams=new URLSearchParams({message:caption,access_token:ptok});
+      pids.forEach((id,i)=>postParams.append(`attached_media[${i}]`,JSON.stringify({media_fbid:id})));
+      const postR=await fetch(`https://graph.facebook.com/v21.0/${pid}/feed`,{method:'POST',body:postParams});
       const postD=await postR.json(); if(postD.error) throw new Error(postD.error.message);
       log(`✅ Facebook posted! ID: ${postD.id}`,'ok');
-    }catch(fbErr){
-      log(`❌ Facebook failed: ${fbErr.message}`,'err');
-    }
-
+    }catch(e){ log(`❌ Facebook failed: ${e.message}`,'err'); }
     setStatus('POSTED ✓');
     log('🎉 Both platforms done!','ok');
-  }catch(err){
-    log(`❌ Deploy error: ${err.message}`,'err'); setStatus('FAILED');
-  }
+  }catch(err){ log(`❌ Deploy error: ${err.message}`,'err'); setStatus('FAILED'); }
   btn.disabled=false; btn.textContent='⚡ Deploy to Instagram + Facebook';
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SMART AUTOPILOT — Every 30 min, category rotation
-═══════════════════════════════════════════════════════════ */
-const AUTO_CATEGORIES = [
-  {h:6,  m:0,  type:'news',       topic:'India Top News'},
-  {h:6,  m:30, type:'motivation', topic:'Morning Discipline'},
-  {h:7,  m:0,  type:'news',       topic:'Karnataka'},
-  {h:7,  m:30, type:'news',       topic:'Indian Politics'},
-  {h:8,  m:0,  type:'motivation', topic:'Success Mindset'},
-  {h:8,  m:30, type:'news',       topic:'Business'},
-  {h:9,  m:0,  type:'news',       topic:'Sports'},
-  {h:9,  m:30, type:'news',       topic:'AI & Tech'},
-  {h:10, m:0,  type:'news',       topic:'Global'},
-  {h:10, m:30, type:'motivation', topic:'Growth Mindset'},
-  {h:11, m:0,  type:'news',       topic:'India Top News'},
-  {h:11, m:30, type:'news',       topic:'Bengaluru'},
-  {h:12, m:0,  type:'news',       topic:'Karnataka'},
-  {h:12, m:30, type:'motivation', topic:'Leadership'},
-  {h:13, m:0,  type:'news',       topic:'Indian Politics'},
-  {h:13, m:30, type:'news',       topic:'Business'},
-  {h:14, m:0,  type:'motivation', topic:'Hustle & Hard Work'},
-  {h:14, m:30, type:'news',       topic:'Sports'},
-  {h:15, m:0,  type:'news',       topic:'Global'},
-  {h:15, m:30, type:'news',       topic:'AI & Tech'},
-  {h:16, m:0,  type:'motivation', topic:'Confidence'},
-  {h:16, m:30, type:'news',       topic:'India Top News'},
-  {h:17, m:0,  type:'news',       topic:'Karnataka'},
-  {h:17, m:30, type:'news',       topic:'Indian Politics'},
-  {h:18, m:0,  type:'motivation', topic:'Evening Reflection'},
-  {h:18, m:30, type:'news',       topic:'Sports'},
-  {h:19, m:0,  type:'news',       topic:'Bengaluru'},
-  {h:19, m:30, type:'news',       topic:'Business'},
-  {h:20, m:0,  type:'motivation', topic:'Never Give Up'},
-  {h:20, m:30, type:'news',       topic:'Global'},
-  {h:21, m:0,  type:'news',       topic:'India Top News'},
-  {h:21, m:30, type:'news',       topic:'AI & Tech'},
-  {h:22, m:0,  type:'motivation', topic:'Night Wisdom'},
-];
-
-function getCurrentCategory(){
-  const now = new Date();
-  const h = now.getHours();
-  const m = now.getMinutes() >= 30 ? 30 : 0;
-  return AUTO_CATEGORIES.find(c => c.h===h && c.m===m) || null;
-}
-
-let autopilotRunning=false;
-
-async function runAutopilotCycle(){
-  if(autopilotRunning){ log('⚠ Already running — skipping','warn'); return; }
-  autopilotRunning=true;
-  const cat = getCurrentCategory();
-  if(!cat){
-    log('⏸ Outside posting hours (6AM-10PM)');
-    autopilotRunning=false; return;
-  }
-  log(`🤖 Auto: ${cat.type.toUpperCase()} — ${cat.topic}`,'warn');
+async function handleFBRun(){
+  const token=document.getElementById('accessToken').value.trim();
+  const caption=document.getElementById('caption').value.trim();
+  if(!token) return log('ERR: Paste Meta token first then click AUTH.','err');
+  if(!slides.length) return log('ERR: Generate slides first.','err');
+  const cn=document.getElementById('cloudName').value.trim();
+  const pr=document.getElementById('uploadPreset').value.trim();
+  if(!cn||!pr) return log('ERR: Cloudinary name + preset required.','err');
+  const btn=document.querySelector('button[onclick="handleFBRun()"]');
+  btn.disabled=true; btn.textContent='⏳ Deploying to Facebook…';
   try{
-    slides=[]; imageCache={}; // clear previous
-
-    if(cat.type === 'news'){
-      switchMode('news');
-      log('📡 Fetching news…');
-      await fetchLiveNews();
-      if(!latestNews.length){
-        throw new Error('No news fetched — check network/backend');
-      }
-      log(`✅ ${latestNews.length} articles fetched`,'ok');
-      await generateTop10NewsCarousel();
-    } else {
-      const topicEl = document.getElementById('aiTopic');
-      if(topicEl) topicEl.value = cat.topic;
-      const countEl = document.getElementById('slideCount');
-      if(countEl) countEl.value = '7';
-      switchMode('carousel');
-      await generateAI();
+    const fbUserToken=document.getElementById('userToken').value||token;
+    const meRes=await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${token}`);
+    const meData=await meRes.json();
+    if(meData.error) throw new Error(meData.error.message);
+    const page=meData.data?.[0];
+    if(!page) throw new Error('No Facebook Page found.');
+    const pid=page.id; const ptok=page.access_token;
+    log(`📘 Page: ${page.name}`,'ok');
+    const urls=[];
+    for(let i=0;i<slides.length;i++){
+      log(`☁️ Uploading slide ${i+1}…`);
+      const cv=document.createElement('canvas'); cv.width=CANVAS_W; cv.height=CANVAS_H;
+      drawSlide(cv,slides[i],i);
+      const b64=cv.toDataURL('image/jpeg',.93).split(',')[1];
+      const form=new FormData(); form.append('file',`data:image/jpeg;base64,${b64}`); form.append('upload_preset',pr);
+      const r=await fetch(`https://api.cloudinary.com/v1_1/${cn}/image/upload`,{method:'POST',body:form});
+      const d=await r.json(); if(d.error) throw new Error(d.error.message); urls.push(d.secure_url);
     }
-
-    // Verify slides were actually generated
-    if(!slides || slides.length === 0){
-      throw new Error('No slides generated — cannot post');
+    const pids=[];
+    for(const u of urls){
+      const fd=new URLSearchParams({url:u,published:'false',access_token:ptok});
+      const r=await fetch(`https://graph.facebook.com/v21.0/${pid}/photos`,{method:'POST',body:fd});
+      const d=await r.json(); if(d.error) throw new Error(d.error.message); pids.push(d.id);
     }
-    log(`✅ ${slides.length} slides ready — deploying…`,'ok');
-
-    await deployBoth();
-    log(`✅ Posted: ${cat.topic}`,'ok');
-    log(`📅 Next: ${getNextSlotTime()}`);
-  }catch(err){
-    log(`🤖 Failed: ${err.message}`,'err');
-  }
-  autopilotRunning=false;
+    const postParams=new URLSearchParams({message:caption,access_token:ptok});
+    pids.forEach((id,i)=>postParams.append(`attached_media[${i}]`,JSON.stringify({media_fbid:id})));
+    const postR=await fetch(`https://graph.facebook.com/v21.0/${pid}/feed`,{method:'POST',body:postParams});
+    const postD=await postR.json(); if(postD.error) throw new Error(postD.error.message);
+    log(`🎉 Facebook posted! ID: ${postD.id}`,'ok'); setStatus('FB POSTED ✓');
+  }catch(err){ log(`❌ Facebook deploy error: ${err.message}`,'err'); setStatus('FB FAILED'); }
+  btn.disabled=false; btn.textContent='📘 Facebook Only';
 }
 
-async function toggleAutopilot(){
-  const btn=document.getElementById('autopilotBtn');
-  const badge=document.getElementById('autoStatus');
-  if(autopilotTimer){
-    clearInterval(autopilotTimer);
-    autopilotTimer=null;
-    btn.textContent='▶ Start Autopilot';
-    btn.classList.remove('btn-ap');
-    badge.textContent='OFF';
-    badge.style.color='var(--muted)';
-    log('🛑 Autopilot stopped.','warn');
-  }else{
-    const userId=document.getElementById('userId').value;
-    const gemKey=document.getElementById('geminiKey').value;
-    if(!userId||!gemKey) return log('ERR: AUTH + Gemini key required first.','err');
-
-    btn.textContent='⏹ Stop Autopilot';
-    btn.classList.add('btn-ap');
-    badge.textContent='ACTIVE';
-    badge.style.color='var(--accent4)';
-    log('🤖 Autopilot ARMED — posts every 30 min at scheduled times.','ok');
-    log(`📅 Next post at: ${getNextSlotTime()}`,'ok');
-
-    // Check every minute if it's time to post
-    autopilotTimer = setInterval(async ()=>{
-      const cat = getCurrentCategory();
-      if(cat) await runAutopilotCycle();
-    }, 60000); // check every minute
-
-    // Run immediately if we're at a scheduled time
-    const cat = getCurrentCategory();
-    if(cat) runAutopilotCycle();
-  }
-}
-
-function getNextSlotTime(){
-  const now = new Date();
-  const h = now.getHours();
-  const m = now.getMinutes();
-  for(const c of AUTO_CATEGORIES){
-    if(c.h > h || (c.h === h && c.m > m)){
-      return `${String(c.h).padStart(2,'0')}:${String(c.m).padStart(2,'0')} — ${c.topic}`;
-    }
-  }
-  return '06:00 tomorrow — India Top News';
-}
-
-/* ═══════════════════════════════════════════════════════════
-   CHART DATA EDITOR
-═══════════════════════════════════════════════════════════ */
-function applyChartEdit(raw){
-  if(selectedSlide===null) return;
-  const lines = raw.split('\n').filter(l=>l.includes(':'));
-  const data = lines.map(l=>{
-    const [label,...rest]=l.split(':'); const value=parseFloat(rest.join(':'))||0;
-    return {label:label.trim(), value};
-  }).filter(d=>d.label&&d.value>0);
-  if(data.length>0){ slides[selectedSlide].chartData=data; buildGrid(); }
-}
-
-// Show chart editor only for chart-bar slides
-const origSelectSlide = selectSlide;
-function selectSlide(i){
-  const all=document.querySelectorAll('canvas.preview'); all.forEach(c=>c.classList.remove('selected'));
-  if(selectedSlide===i){selectedSlide=null;document.getElementById('slideEditor').style.display='none';return;}
-  selectedSlide=i; if(all[i]) all[i].classList.add('selected');
-  const s=slides[i];
-  document.getElementById('editorTitle').textContent=`Editing Slide ${i+1}`;
-  document.getElementById('editTitle').value=s.title||'';
-  document.getElementById('editBody').value=s.body||'';
-  document.getElementById('editImgSource').value=s.imageQuery||'';
-  document.getElementById('editLayout').value=s.layout||'news-card';
-  document.getElementById('slideEditor').style.display='block';
-
-  // Show chart editor only if chart-bar
-  const isChart = s.layout==='chart-bar';
-  document.getElementById('chartEditorPanel').style.display=isChart?'block':'none';
-  if(isChart && s.chartData){
-    document.getElementById('editChartData').value=(s.chartData||[]).map(d=>`${d.label}:${d.value}`).join('\n');
-  }
-
-  document.getElementById('imgOverridePanel').style.display='block';
-  const ck=s.cacheKey||s.id;
-  const existingOv=slideImageOverrides[ck];
-  const prevEl=document.getElementById('overridePreview');
-  document.getElementById('overrideUrlInput').value='';
-  if(existingOv?.src) prevEl.src=existingOv.src; else prevEl.src='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-}
-
-/* ═══════════════════════════════════════════════════════════
-   OFFLINE DOWNLOAD — ALL SLIDES AS ZIP
-═══════════════════════════════════════════════════════════ */
-async function downloadAllSlides(){
-  if(!slides.length){ log('ERR: Generate slides first.','err'); return; }
-  log('📦 Preparing download…','warn');
-  try{
-    // Try JSZip if available, otherwise download individually
-    const hasJSZip = typeof JSZip !== 'undefined';
-    if(hasJSZip){
-      const zip = new JSZip();
-      for(let i=0;i<slides.length;i++){
-        const cv=document.createElement('canvas'); cv.width=CANVAS_W; cv.height=CANVAS_H;
-        drawSlide(cv,slides[i],i);
-        const b64=cv.toDataURL('image/jpeg',.95).split(',')[1];
-        zip.file(`slide_${String(i+1).padStart(2,'0')}.jpg`, b64, {base64:true});
-      }
-      const blob=await zip.generateAsync({type:'blob'});
-      const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-      a.download=`carousel_${Date.now()}.zip`; a.click();
-      log('✅ ZIP downloaded!','ok');
-    } else {
-      // Fallback: download each slide individually
-      for(let i=0;i<slides.length;i++){
-        const cv=document.createElement('canvas'); cv.width=CANVAS_W; cv.height=CANVAS_H;
-        drawSlide(cv,slides[i],i);
-        const a=document.createElement('a'); a.href=cv.toDataURL('image/jpeg',.95);
-        a.download=`slide_${String(i+1).padStart(2,'0')}.jpg`;
-        a.click(); await new Promise(r=>setTimeout(r,200));
-      }
-      log(`✅ ${slides.length} slides downloaded!`,'ok');
-    }
-  }catch(err){ log(`Download error: ${err.message}`,'err'); }
-}
-
-window.onload = async function(){
-  loadSettings();
-  // Check if backend is awake
-  try{
-    const r = await fetch('https://avi-autoposter.onrender.com/api/test?q=ping', {signal: AbortSignal.timeout(5000)});
-    if(r.ok) log('✅ Backend ready.','ok');
-  }catch(e){
-    log('⚠ Backend is waking up (Render free tier) — first image search may take 30-50s. Please wait…','warn');
-  }
-};
+window.onload=loadSettings;
 </script>
 </body>
 </html>
