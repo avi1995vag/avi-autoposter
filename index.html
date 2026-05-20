@@ -1725,6 +1725,8 @@ async function deployBoth(){
   }
   btn.disabled=false; btn.textContent='⚡ Deploy to Instagram + Facebook';
 }
+
+async function toggleAutopilot(){
   const btn=document.getElementById('autopilotBtn'), badge=document.getElementById('autoStatus');
   if(autopilotTimer){
     clearInterval(autopilotTimer); autopilotTimer=null; btn.textContent='▶ Start Autopilot'; btn.classList.remove('btn-ap'); badge.textContent='OFF'; badge.style.color='var(--muted)'; log('🛑 Autopilot disabled.','warn');
