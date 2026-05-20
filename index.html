@@ -1737,37 +1737,37 @@ async function deployBoth(){
 const AUTO_CATEGORIES = [
   {h:6,  m:0,  type:'news',       topic:'India Top News'},
   {h:6,  m:30, type:'motivation', topic:'Morning Discipline'},
-  {h:7,  m:0,  type:'news',       topic:'Karnataka News'},
-  {h:7,  m:30, type:'news',       topic:'Sports & Cricket'},
+  {h:7,  m:0,  type:'news',       topic:'Karnataka'},
+  {h:7,  m:30, type:'news',       topic:'Indian Politics'},
   {h:8,  m:0,  type:'motivation', topic:'Success Mindset'},
-  {h:8,  m:30, type:'news',       topic:'Business & Economy'},
-  {h:9,  m:0,  type:'news',       topic:'Technology & AI'},
-  {h:9,  m:30, type:'motivation', topic:'Growth Mindset'},
-  {h:10, m:0,  type:'news',       topic:'Global News'},
-  {h:10, m:30, type:'news',       topic:'India Politics'},
-  {h:11, m:0,  type:'motivation', topic:'Focus & Productivity'},
-  {h:11, m:30, type:'news',       topic:'Bengaluru City News'},
-  {h:12, m:0,  type:'news',       topic:'Entertainment & Cinema'},
+  {h:8,  m:30, type:'news',       topic:'Business'},
+  {h:9,  m:0,  type:'news',       topic:'Sports'},
+  {h:9,  m:30, type:'news',       topic:'AI & Tech'},
+  {h:10, m:0,  type:'news',       topic:'Global'},
+  {h:10, m:30, type:'motivation', topic:'Growth Mindset'},
+  {h:11, m:0,  type:'news',       topic:'India Top News'},
+  {h:11, m:30, type:'news',       topic:'Bengaluru'},
+  {h:12, m:0,  type:'news',       topic:'Karnataka'},
   {h:12, m:30, type:'motivation', topic:'Leadership'},
-  {h:13, m:0,  type:'news',       topic:'Health & Science'},
-  {h:13, m:30, type:'news',       topic:'Karnataka Politics'},
+  {h:13, m:0,  type:'news',       topic:'Indian Politics'},
+  {h:13, m:30, type:'news',       topic:'Business'},
   {h:14, m:0,  type:'motivation', topic:'Hustle & Hard Work'},
-  {h:14, m:30, type:'news',       topic:'Sports Live Updates'},
-  {h:15, m:0,  type:'news',       topic:'Business News'},
-  {h:15, m:30, type:'motivation', topic:'Confidence'},
-  {h:16, m:0,  type:'news',       topic:'India Breaking News'},
-  {h:16, m:30, type:'news',       topic:'Global Politics'},
-  {h:17, m:0,  type:'motivation', topic:'Resilience'},
-  {h:17, m:30, type:'news',       topic:'Technology News'},
-  {h:18, m:0,  type:'news',       topic:'Cricket & IPL'},
-  {h:18, m:30, type:'motivation', topic:'Evening Reflection'},
-  {h:19, m:0,  type:'news',       topic:'Karnataka Top Stories'},
-  {h:19, m:30, type:'motivation', topic:'Never Give Up'},
-  {h:20, m:0,  type:'news',       topic:'India Night Bulletin'},
-  {h:20, m:30, type:'motivation', topic:'Gratitude'},
-  {h:21, m:0,  type:'news',       topic:'Global Night News'},
-  {h:21, m:30, type:'motivation', topic:'Night Wisdom'},
-  {h:22, m:0,  type:'motivation', topic:'Tomorrow Preparation'},
+  {h:14, m:30, type:'news',       topic:'Sports'},
+  {h:15, m:0,  type:'news',       topic:'Global'},
+  {h:15, m:30, type:'news',       topic:'AI & Tech'},
+  {h:16, m:0,  type:'motivation', topic:'Confidence'},
+  {h:16, m:30, type:'news',       topic:'India Top News'},
+  {h:17, m:0,  type:'news',       topic:'Karnataka'},
+  {h:17, m:30, type:'news',       topic:'Indian Politics'},
+  {h:18, m:0,  type:'motivation', topic:'Evening Reflection'},
+  {h:18, m:30, type:'news',       topic:'Sports'},
+  {h:19, m:0,  type:'news',       topic:'Bengaluru'},
+  {h:19, m:30, type:'news',       topic:'Business'},
+  {h:20, m:0,  type:'motivation', topic:'Never Give Up'},
+  {h:20, m:30, type:'news',       topic:'Global'},
+  {h:21, m:0,  type:'news',       topic:'India Top News'},
+  {h:21, m:30, type:'news',       topic:'AI & Tech'},
+  {h:22, m:0,  type:'motivation', topic:'Night Wisdom'},
 ];
 
 function getCurrentCategory(){
@@ -1781,34 +1781,44 @@ let autopilotTimer=null;
 let autopilotRunning=false;
 
 async function runAutopilotCycle(){
-  if(autopilotRunning){ log('⚠ Already running — skipping this cycle','warn'); return; }
+  if(autopilotRunning){ log('⚠ Already running — skipping','warn'); return; }
   autopilotRunning=true;
   const cat = getCurrentCategory();
-  if(!cat){ log('⏸ Outside posting hours (6AM-10PM IST)'); autopilotRunning=false; return; }
-
-  log(`🤖 Auto-post: ${cat.type.toUpperCase()} — ${cat.topic}`,'warn');
+  if(!cat){
+    log('⏸ Outside posting hours (6AM-10PM)');
+    autopilotRunning=false; return;
+  }
+  log(`🤖 Auto: ${cat.type.toUpperCase()} — ${cat.topic}`,'warn');
   try{
-    const lang = document.getElementById('aiLanguage')?.value || 'English';
-    currentLang = lang;
-
     if(cat.type === 'news'){
-      // Use Live News carousel
+      // Set the region/topic dropdown to match
+      const regionSel = document.getElementById('newsRegionSelect');
+      if(regionSel){
+        // Find the option that matches
+        for(let opt of regionSel.options){
+          if(opt.text.includes(cat.topic) || opt.value.includes(cat.topic)){
+            regionSel.value = opt.value;
+            break;
+          }
+        }
+      }
       switchMode('news');
       await fetchLiveNews();
       await generateTop10NewsCarousel();
     } else {
-      // Use AI carousel for motivation
+      // Motivation — use AI carousel
       const topicEl = document.getElementById('aiTopic');
       if(topicEl) topicEl.value = cat.topic;
+      const langEl = document.getElementById('aiLanguage');
+      if(langEl) currentLang = langEl.value;
       switchMode('carousel');
       await generateAI();
     }
-
-    // Deploy to both platforms
     await deployBoth();
-    log(`✅ Auto-posted: ${cat.topic}`,'ok');
+    log(`✅ Posted: ${cat.topic}`,'ok');
+    log(`📅 Next: ${getNextSlotTime()}`);
   }catch(err){
-    log(`🤖 Cycle failed: ${err.message}`,'err');
+    log(`🤖 Failed: ${err.message}`,'err');
   }
   autopilotRunning=false;
 }
