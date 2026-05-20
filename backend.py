@@ -674,21 +674,23 @@ def sched_gemini(prompt, use_search=True):
 
 def sched_get_images(slides):
     urls = []
+    cn = os.environ.get('CLOUDINARY_NAME','')
+    pr = os.environ.get('CLOUDINARY_PRESET','')
     for s in slides:
         q = s.get('imageQuery', s.get('title','news'))
         try:
+            # Call find_images directly — no localhost needed
             imgs = find_images(q)
-            cn = os.environ.get('CLOUDINARY_NAME','')
-            pr = os.environ.get('CLOUDINARY_PRESET','')
-            for img_url in imgs[:6]:
+            for img_url in imgs[:8]:
                 try:
-                    proxy = f'http://localhost:{os.environ.get("PORT",5000)}/api/proxy_image?url={urllib.parse.quote(img_url)}'
                     r = requests.post(
                         f'https://api.cloudinary.com/v1_1/{cn}/image/upload',
-                        data={'file':proxy,'upload_preset':pr}, timeout=45)
+                        data={'file': img_url, 'upload_preset': pr},
+                        timeout=45)
                     d = r.json()
                     if 'secure_url' in d:
                         urls.append(d['secure_url'])
+                        sched_log(f'  ✅ Image uploaded')
                         break
                 except: continue
         except Exception as ex:
@@ -784,20 +786,28 @@ def scheduler_thread():
     last_run = (-1,-1)
     while True:
         try:
-            now = datetime.datetime.now(IST) if HAS_PYTZ else datetime.datetime.utcnow()
-            h,m = now.hour, now.minute
-            # Round to nearest 30-min slot
+            # Always use IST (UTC+5:30)
+            if HAS_PYTZ:
+                now = datetime.datetime.now(IST)
+            else:
+                # Manual IST offset: UTC + 5h30m
+                now = datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
+            h, m = now.hour, now.minute
             slot_m = 30 if m >= 30 else 0
             key = (h, slot_m)
+            sched_log(f'[Tick] IST {h:02d}:{m:02d} → slot ({h},{slot_m})')
             if key != last_run:
                 match = [(t,tp) for (sh,sm,tp,t) in CATEGORIES if sh==h and sm==slot_m]
                 if match:
                     last_run = key
                     topic, cat_type = match[0]
+                    sched_log(f'⏰ Slot matched: {cat_type} — {topic}')
                     try:
                         sched_run_slot(cat_type, topic)
                     except Exception as e:
                         sched_log(f'❌ Slot error: {e}')
+                else:
+                    sched_log(f'  No slot for ({h},{slot_m}) — outside schedule or not a post time')
         except Exception as e:
             sched_log(f'❌ Scheduler loop error: {e}')
         time.sleep(60)
