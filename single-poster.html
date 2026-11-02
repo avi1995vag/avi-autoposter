@@ -63,7 +63,7 @@ canvas{box-shadow:0 24px 75px #16191f26;border:1px solid #dfe1e6;border-radius:1
 <p class="note">Your image stays in this browser; nothing is uploaded. For best results, use a high-resolution, rights-cleared image.</p>
 </section>
 <section><h2>3. Size & text</h2><label for="size">Output size</label><select id="size"><option value="1080x1080">Square · 1080 × 1080</option><option value="1080x1350">Portrait · 1080 × 1350</option><option value="1080x1920">Story · 1080 × 1920</option><option value="1200x675">Landscape · 1200 × 675</option></select>
-<label for="focusX">Image horizontal focus</label><input type="range" id="focusX" min="0" max="100" value="50"><label for="focusY">Image vertical focus</label><input type="range" id="focusY" min="0" max="100" value="50"><label for="textScale">Headline size</label><input type="range" id="textScale" min="60" max="125" value="100">
+<label for="focusX">Image horizontal focus</label><input type="range" id="focusX" min="0" max="100" value="50"><label for="focusY">Image vertical focus</label><input type="range" id="focusY" min="0" max="100" value="50"><label for="textScale">Headline size <output id="headlineSizeValue">100%</output></label><input type="range" id="textScale" min="50" max="260" value="150"><label for="bodyScale">Supporting text size <output id="bodySizeValue">100%</output></label><input type="range" id="bodyScale" min="50" max="240" value="110"><label for="categoryScale">Category size <output id="categorySizeValue">100%</output></label><input type="range" id="categoryScale" min="50" max="220" value="110"><label for="brandScale">Footer size</label><input type="range" id="brandScale" min="50" max="220" value="100"><label for="verticalPosition">Headline vertical position</label><input type="range" id="verticalPosition" min="-250" max="250" value="0">
 </section>
 </aside>
 <div class="workspace">
@@ -118,11 +118,11 @@ function measureFit(text,maxWidth,maxLines,initial,minSize){
 }
 function headline(text,x,y,width,maxLines,size,color,align='left',maxHeight=Infinity){
  ctx.textAlign=align;ctx.textBaseline='top';ctx.fillStyle=color;
- const fitted=measureFit(text,width,maxLines,size,Math.max(28,Math.floor(size*.43)));
+ const fitted=measureFit(text,width,maxLines,size,Math.max(16,Math.floor(size*.75)));
  const lh=fitted.size*1.32;
  // Vertical-fit guarantee for portrait and landscape sizes
  const scale=Math.min(1,maxHeight/(fitted.lines.length*lh||1));
- const finalSize=Math.max(20,Math.floor(fitted.size*scale));
+ const finalSize=Math.max(18,Math.floor(fitted.size*scale));
  ctx.font='800 '+finalSize+'px "Anek Kannada",Inter,sans-serif';
  fitted.lines.forEach((l,i)=>ctx.fillText(l,x,y+i*finalSize*1.32));
  return fitted.lines.length*finalSize*1.32;
@@ -148,11 +148,11 @@ function draw(){
  const [a,white,dark]=p();const title=$('headline').value.trim()||'Your headline here';
  const detail=$('detail').value.trim(),cat=$('category').value.trim(),brand=$('brand').value.trim();
  const mx=W*.062,usable=W-2*mx,scale=Number($('textScale').value)/100;
- const fs=Math.round(Math.min(W*.082,95)*scale), ds=Math.round(Math.min(W*.033,37));
- const foot=()=>{rectangle(mx,H-60,usable,2,a);ctx.font='700 '+Math.min(24,W*.023)+'px Inter,sans-serif';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillStyle=white;ctx.fillText(brand.slice(0,42),mx,H-45)};
- const eyebrow=(x,y,color=white)=>{ctx.fillStyle=color;ctx.font='900 '+Math.min(27,W*.027)+'px Inter,"Anek Kannada",sans-serif';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(cat.slice(0,42),x,y)};
+ const fs=Math.round(Math.min(W*.082,95)*scale), ds=Math.round(Math.min(W*.033,37)*Number($('bodyScale').value)/100);
+ const foot=()=>{rectangle(mx,H-60,usable,2,a);ctx.font='700 '+Math.round(Math.min(24,W*.023)*Number($('brandScale').value)/100)+'px Inter,sans-serif';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillStyle=white;ctx.fillText(brand.slice(0,42),mx,H-45)};
+ const eyebrow=(x,y,color=white)=>{ctx.fillStyle=color;ctx.font='900 '+Math.round(Math.min(27,W*.027)*Number($('categoryScale').value)/100)+'px Inter,"Anek Kannada",sans-serif';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(cat.slice(0,42),x,y)};
  rectangle(0,0,W,H,dark);
- const t=(x,y,w=usable,lines=4,col=white,height=H*.45)=>headline(title,x,y,w,lines,fs,col,'left',height);
+ const t=(x,y,w=usable,lines=4,col=white,height=H*.45)=>headline(title,x,y+Number($('verticalPosition').value)*H/1080,w,lines,fs,col,'left',height);
  if(layout==='hero'||layout==='bottom'){
   imageAt(0,0,W,layout==='hero'?H:H*.72);
   gradient(0,H*.30,W,H*.70,'#00000000','#0b0c0ffb');
@@ -188,7 +188,7 @@ function selectLayout(id){layout=id;document.querySelectorAll('.template').forEa
 layouts.forEach(([id,name])=>{const b=document.createElement('button');b.className='template';b.textContent=name;b.dataset.id=id;b.onclick=()=>selectLayout(id);$('templates').append(b)});
 palettes.forEach(([accent],i)=>{const b=document.createElement('button');b.className='swatch';b.style.background=accent;b.title='Palette '+(i+1);b.setAttribute('aria-label',b.title);b.onclick=()=>{palette=i;document.querySelectorAll('.swatch').forEach((v,j)=>v.classList.toggle('active',i===j));draw()};$('swatches').append(b)});
 document.querySelector('.swatch').classList.add('active');
-['category','headline','detail','brand','size','textScale','focusX','focusY'].forEach(id=>$(id).addEventListener('input',draw));
+['category','headline','detail','brand','size','textScale','bodyScale','categoryScale','brandScale','verticalPosition','focusX','focusY'].forEach(id=>$(id).addEventListener('input',draw));
 $('image').addEventListener('change',e=>{const file=e.target.files?.[0];if(!file)return;if(!/^image\/(png|jpeg|webp)$/.test(file.type)||file.size>15*1024*1024){$('message').textContent='Choose a PNG, JPEG or WebP image under 15 MB';return}
  if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl=URL.createObjectURL(file);
  const img=new Image();img.onload=()=>{photo=img;$('message').textContent='Photo ready';draw()};img.onerror=()=>{$('message').textContent='Unable to read image'};img.src=photoUrl;
@@ -218,113 +218,50 @@ function recommend(){
  $('message').textContent='Suggested for '+result.category;
  selectLayout(result.layouts[0]);
 }
+
 function loadRemoteImage(url){
  const parsed=new URL(url);
- if(!['https:','http:'].includes(parsed.protocol))throw Error('Only web image URLs are allowed');
- const base=$('backendUrl').value.trim().replace(new RegExp('/
+ if(!['https:','http:'].includes(parsed.protocol))throw Error('Invalid image URL');
+ const base=$('backendUrl').value.trim().replace(/\/$/,'');
  const img=new Image();img.crossOrigin='anonymous';
  img.onload=()=>{photo=img;draw();$('message').textContent='Image imported'};
- img.onerror=()=>{$('message').textContent='Image blocked by source; upload it manually instead'};
+ img.onerror=()=>{$('message').textContent='Image not accessible through backend. Use Upload photo.'};
  img.src=base+'/api/poster_image?url='+encodeURIComponent(parsed.href);
 }
 $('loadPhotoUrl').onclick=()=>{try{loadRemoteImage($('photoUrlInput').value)}catch(e){$('message').textContent=e.message}};
-$('importArticle').onclick=async()=>{
- const btn=$('importArticle');btn.disabled=true;$('message').textContent='Importing…';
- try{
-  const url=new URL($('articleUrl').value);
-  if(!/^https?:$/.test(url.protocol))throw Error('Invalid article URL');
-  const base=$('backendUrl').value.trim().replace(new RegExp('/$'),'');
-  if(!base.startsWith('https://'))throw Error('Enter an HTTPS backend address');
-  const response=await fetch(base+'/api/article_preview?url='+encodeURIComponent(url.href),{headers:{Accept:'application/json'}});
-  const contentType=response.headers.get('content-type')||'';
-  if(!contentType.includes('application/json'))throw Error('Backend returned HTML instead of JSON. Check Render service URL and deployment.');
-  const data=await response.json();if(!response.ok||data.error)throw Error(data.error||'Import failed');
-  if(!data.title)throw Error('No article headline available');
-  $('headline').value=data.title;$('detail').value=data.description||'';$('category').value='NEWS';
-  if(data.image){$('photoUrlInput').value=data.image;loadRemoteImage(data.image)}
-  recommend();$('message').textContent='Imported from '+data.source+' — review facts and photo rights';
- }catch(error){$('message').textContent=error.message+' — manual editor remains available'}
- finally{btn.disabled=false}
-};
-$('recommend').onclick=recommend;
-$('approved').onchange=()=>{$('approveExport').disabled=!$('approved').checked};
-$('approveExport').onclick=()=>{if($('approved').checked)$('download').click()};
-
-
 async function checkBackend(){
- const out=$('connection'),base=$('backendUrl').value.trim().replace(new RegExp('/selectLayout('hero');
-</script></body></html>),'');
- const img=new Image();img.crossOrigin='anonymous';
- img.onload=()=>{photo=img;draw();$('message').textContent='Image imported'};
- img.onerror=()=>{$('message').textContent='Image blocked by source; upload it manually instead'};
- img.src=parsed.href;
-}
-$('loadPhotoUrl').onclick=()=>{try{loadRemoteImage($('photoUrlInput').value)}catch(e){$('message').textContent=e.message}};
-$('importArticle').onclick=async()=>{
- const btn=$('importArticle');btn.disabled=true;$('message').textContent='Importing…';
+ const out=$('connection'),base=$('backendUrl').value.trim().replace(/\/$/,'');
+ out.textContent='Connecting…';
  try{
-  const url=new URL($('articleUrl').value);
-  if(!/^https?:$/.test(url.protocol))throw Error('Invalid article URL');
-  const base=$('backendUrl').value.trim().replace(new RegExp('/$'),'');
-  if(!base.startsWith('https://'))throw Error('Enter an HTTPS backend address');
-  const response=await fetch(base+'/api/article_preview?url='+encodeURIComponent(url.href),{headers:{Accept:'application/json'}});
-  const contentType=response.headers.get('content-type')||'';
-  if(!contentType.includes('application/json'))throw Error('Backend returned HTML instead of JSON. Check Render service URL and deployment.');
-  const data=await response.json();if(!response.ok||data.error)throw Error(data.error||'Import failed');
-  if(!data.title)throw Error('No article headline available');
-  $('headline').value=data.title;$('detail').value=data.description||'';$('category').value='NEWS';
-  if(data.image){$('photoUrlInput').value=data.image;loadRemoteImage(data.image)}
-  recommend();$('message').textContent='Imported from '+data.source+' — review facts and photo rights';
- }catch(error){$('message').textContent=error.message+' — manual editor remains available'}
- finally{btn.disabled=false}
-};
-$('recommend').onclick=recommend;
-$('approved').onchange=()=>{$('approveExport').disabled=!$('approved').checked};
-$('approveExport').onclick=()=>{if($('approved').checked)$('download').click()};
-
-document.fonts.ready.then(draw);selectLayout('hero');
-</script></body></html>),'');
- out.textContent='Connecting to backend…';
- try{
-  const res=await fetch(base+'/api/health',{signal:AbortSignal.timeout(16000)});
-  if(!res.ok)throw new Error('HTTP '+res.status);
-  const type=res.headers.get('content-type')||'';
-  if(!type.includes('application/json'))throw new Error('Backend URL returns a webpage, not an API');
-  const json=await res.json();if(!json.ok)throw new Error('API did not report ready');
-  out.textContent='● Connected — article import available';out.style.color='#16834d';return true;
- }catch(error){out.textContent='● Backend unavailable: '+error.message+'. Verify Render deployment and address.';out.style.color='#b91c1c';return false}
+  const res=await fetch(base+'/api/health',{signal:AbortSignal.timeout(20000)});
+  if(!res.ok || !(res.headers.get('content-type')||'').includes('json'))throw Error('Backend returned '+res.status+' or non-JSON response');
+  const data=await res.json();if(!data.ok)throw Error('Backend not ready');
+  out.textContent='● Backend connected';out.style.color='#15803d';return true;
+ }catch(e){out.textContent='● Cannot connect: '+e.message+'. Deploy latest code on Render.';out.style.color='#b91c1c';return false}
 }
 $('checkBackend').onclick=checkBackend;
-
-document.fonts.ready.then(draw);selectLayout('hero');
-</script></body></html>),'');
- const img=new Image();img.crossOrigin='anonymous';
- img.onload=()=>{photo=img;draw();$('message').textContent='Image imported'};
- img.onerror=()=>{$('message').textContent='Image blocked by source; upload it manually instead'};
- img.src=parsed.href;
-}
-$('loadPhotoUrl').onclick=()=>{try{loadRemoteImage($('photoUrlInput').value)}catch(e){$('message').textContent=e.message}};
 $('importArticle').onclick=async()=>{
- const btn=$('importArticle');btn.disabled=true;$('message').textContent='Importing…';
+ const btn=$('importArticle');btn.disabled=true;$('message').textContent='Reading article…';
  try{
-  const url=new URL($('articleUrl').value);
-  if(!/^https?:$/.test(url.protocol))throw Error('Invalid article URL');
-  const base=$('backendUrl').value.trim().replace(new RegExp('/$'),'');
-  if(!base.startsWith('https://'))throw Error('Enter an HTTPS backend address');
-  const response=await fetch(base+'/api/article_preview?url='+encodeURIComponent(url.href),{headers:{Accept:'application/json'}});
-  const contentType=response.headers.get('content-type')||'';
-  if(!contentType.includes('application/json'))throw Error('Backend returned HTML instead of JSON. Check Render service URL and deployment.');
-  const data=await response.json();if(!response.ok||data.error)throw Error(data.error||'Import failed');
-  if(!data.title)throw Error('No article headline available');
+  const url=new URL($('articleUrl').value);if(!['https:','http:'].includes(url.protocol))throw Error('Use an article URL');
+  const base=$('backendUrl').value.trim().replace(/\/$/,'');
+  const res=await fetch(base+'/api/article_preview?url='+encodeURIComponent(url.href),{signal:AbortSignal.timeout(35000),headers:{Accept:'application/json'}});
+  if(!(res.headers.get('content-type')||'').includes('json'))throw Error('Backend not deployed or article API unavailable');
+  const data=await res.json();if(!res.ok||data.error)throw Error(data.error||'Article import failed');
+  if(!data.title)throw Error('No article headline found');
   $('headline').value=data.title;$('detail').value=data.description||'';$('category').value='NEWS';
-  if(data.image){$('photoUrlInput').value=data.image;loadRemoteImage(data.image)}
-  recommend();$('message').textContent='Imported from '+data.source+' — review facts and photo rights';
- }catch(error){$('message').textContent=error.message+' — manual editor remains available'}
+  if(data.image){$('photoUrlInput').value=data.image;try{loadRemoteImage(data.image)}catch(e){}}
+  recommend();$('message').textContent='Article imported; review accuracy before using.';
+ }catch(e){$('message').textContent='Import failed: '+e.message+' — try manual entry.'}
  finally{btn.disabled=false}
 };
 $('recommend').onclick=recommend;
 $('approved').onchange=()=>{$('approveExport').disabled=!$('approved').checked};
 $('approveExport').onclick=()=>{if($('approved').checked)$('download').click()};
-
+function updateScaleLabels(){
+ for(const [id,out] of [['textScale','headlineSizeValue'],['bodyScale','bodySizeValue'],['categoryScale','categorySizeValue']])$(out).textContent=$(id).value+'%';
+}
+['textScale','bodyScale','categoryScale'].forEach(id=>$(id).addEventListener('input',updateScaleLabels));
+updateScaleLabels();
 document.fonts.ready.then(draw);selectLayout('hero');
 </script></body></html>
