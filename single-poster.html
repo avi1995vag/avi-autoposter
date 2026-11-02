@@ -121,8 +121,8 @@ function headline(text,x,y,width,maxLines,size,color,align='left',maxHeight=Infi
  const fitted=measureFit(text,width,maxLines,size,Math.max(16,Math.floor(size*.75)));
  const lh=fitted.size*1.32;
  // Vertical-fit guarantee for portrait and landscape sizes
- const scale=Math.min(1,maxHeight/(fitted.lines.length*lh||1));
- const finalSize=Math.max(18,Math.floor(fitted.size*scale));
+ // Preserve the user's font choice; no invisible auto-shrink to a fixed-height box.
+ const finalSize=Math.max(18,Math.floor(fitted.size));
  ctx.font='800 '+finalSize+'px "Anek Kannada",Inter,sans-serif';
  fitted.lines.forEach((l,i)=>ctx.fillText(l,x,y+i*finalSize*1.32));
  return fitted.lines.length*finalSize*1.32;
