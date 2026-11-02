@@ -28,7 +28,7 @@ canvas{width:min(100%,590px);height:auto;box-shadow:0 20px 65px #0009;border-rad
 <header><h1>🔴 AVI <span style="color:#ff6870">Single Poster Studio</span></h1><a href="./index.html">← Existing Carousel Studio</a></header>
 <main>
 <aside>
-<section><h2>1. Import or write</h2><label for="articleUrl">Article URL</label><input id="articleUrl" type="url" placeholder="https://example.com/news/article"><button id="importArticle" class="primary" style="margin-top:8px;width:100%">Import article</button><p class="note">Imports available article metadata. Verify content and image rights before publishing.</p>
+<section><h2>1. Import or write</h2><label for="backendUrl">Article import server</label><input id="backendUrl" type="url" value="https://avi-autoposter.onrender.com" placeholder="https://your-render-service.onrender.com"><p class="note">GitHub Pages requires a separate running backend. Change this if your Render service uses another address.</p><label for="articleUrl">Article URL</label><input id="articleUrl" type="url" placeholder="https://example.com/news/article"><button id="importArticle" class="primary" style="margin-top:8px;width:100%">Import article</button><p class="note">Imports available article metadata. Verify content and image rights before publishing.</p>
 <label for="category">Category / eyebrow</label><input id="category" maxlength="50" value="BREAKING NEWS">
 <label for="headline">Headline — English or ಕನ್ನಡ</label><textarea id="headline" maxlength="250">ಹೊಸ ಸುದ್ದಿಗೆ ಹೊಸ ವಿನ್ಯಾಸ!</textarea>
 <label for="detail">Supporting line</label><textarea id="detail" maxlength="280">ಒಂದು ಸುದ್ದಿಯಿಂದ ಸುಂದರವಾದ ಸಿಂಗಲ್ ಪೋಸ್ಟರ್ ಸಿದ್ಧಪಡಿಸಿ</textarea>
@@ -206,7 +206,11 @@ $('importArticle').onclick=async()=>{
  try{
   const url=new URL($('articleUrl').value);
   if(!/^https?:$/.test(url.protocol))throw Error('Invalid article URL');
-  const response=await fetch('/api/article_preview?url='+encodeURIComponent(url.href));
+  const base=$('backendUrl').value.trim().replace(/\\/$/,'');
+  if(!/^https:\\/\\/[^/]+/.test(base))throw Error('Enter an HTTPS backend address');
+  const response=await fetch(base+'/api/article_preview?url='+encodeURIComponent(url.href),{headers:{Accept:'application/json'}});
+  const contentType=response.headers.get('content-type')||'';
+  if(!contentType.includes('application/json'))throw Error('Backend returned HTML instead of JSON. Check Render service URL and deployment.');
   const data=await response.json();if(!response.ok||data.error)throw Error(data.error||'Import failed');
   if(!data.title)throw Error('No article headline available');
   $('headline').value=data.title;$('detail').value=data.description||'';$('category').value='NEWS';
