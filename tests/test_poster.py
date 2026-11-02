@@ -28,6 +28,15 @@ class ArticlePreviewTests(unittest.TestCase):
         self.assertEqual(data["title"],"Karnataka Story")
         self.assertEqual(data["image"],"https://example.org/photo.jpg")
 
+    def test_health_endpoint(self):
+        response=backend.app.test_client().get("/api/health")
+        self.assertEqual(response.status_code,200)
+        self.assertTrue(response.get_json()["ok"])
+
+    def test_image_proxy_rejects_unsafe_urls(self):
+        response=backend.app.test_client().get("/api/poster_image?url=file:///etc/passwd")
+        self.assertEqual(response.status_code,400)
+
     def test_editor_structure(self):
         text=Path("single-poster.html").read_text(encoding="utf-8")
         for marker in ["id=\"articleUrl\"","id=\"recommend\"","id=\"focusX\"","id=\"focusY\"","id=\"approved\"","id=\"download\""]:
