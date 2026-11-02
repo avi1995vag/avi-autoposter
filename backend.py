@@ -544,6 +544,10 @@ def article_preview():
     except (ValueError, requests.RequestException, socket.gaierror, OSError) as error:
         return jsonify({'error': str(error)}), 400
 
+@app.route('/api/health')
+def api_health():
+    return jsonify({'ok': True, 'service': 'avi-autoposter', 'article_import': True})
+
 # ── ROUTES ───────────────────────────────────────────────────
 
 @app.route('/')
@@ -558,7 +562,7 @@ def serve_index():
 @app.errorhandler(Exception)
 def handle_exception(e):
     print(f'[GLOBAL ERROR] {e}')
-    return jsonify({'error': str(e), 'images': []}), 200  # return 200 not 502
+    return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/rss')
 def proxy_rss():
