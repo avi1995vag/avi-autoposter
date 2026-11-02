@@ -1,0 +1,29 @@
+name: Poster Studio Checks
+on:
+  pull_request:
+  push:
+    branches: [feature/single-poster-studio]
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: pip install -r requirements.txt
+      - run: python -m unittest discover -s tests -v
+      - name: Check inline JavaScript syntax
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          for(const file of ['index.html','single-poster.html']){
+            const content=fs.readFileSync(file,'utf8');
+            const script=[...content.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join('\n');
+            new vm.Script(script,{filename:file});
+            console.log(file,'inline JavaScript syntax OK');
+          }
+          NODE
