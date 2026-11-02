@@ -458,6 +458,92 @@ def find_images(query, article_url=''):
     print(f'  ✅ FINAL: {len(final)} images\n')
     return final
 
+
+# Single-poster article metadata: explicitly non-publishing and restricted to public URLs.
+from html.parser import HTMLParser
+import socket, ipaddress
+from flask import send_from_directory
+
+class PosterMetadataParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.meta = {}
+        self.title_text = ""
+        self._in_title = False
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == "title":
+            self._in_title = True
+        if tag == "meta":
+            key = (attrs.get("property") or attrs.get("name") or "").lower()
+            if key:
+                self.meta[key] = attrs.get("content", "")
+    def handle_endtag(self, tag):
+        if tag == "title":
+            self._in_title = False
+    def handle_data(self, data):
+        if self._in_title:
+            self.title_text += data
+
+def public_article_url(value):
+    parsed = urllib.parse.urlsplit(value)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password:
+        raise ValueError("Enter a public HTTP or HTTPS article URL")
+    if parsed.port not in (None, 80, 443):
+        raise ValueError("Unsupported port")
+    for info in socket.getaddrinfo(parsed.hostname, parsed.port or 443, type=socket.SOCK_STREAM):
+        address = ipaddress.ip_address(info[4][0])
+        if not address.is_global:
+            raise ValueError("Private or unsafe article address")
+    return value
+
+@app.route('/single-poster.html')
+def serve_single_poster():
+    return send_from_directory('.', 'single-poster.html')
+
+@app.route('/api/article_preview')
+def article_preview():
+    raw = request.args.get('url', '').strip()
+    if len(raw) > 2000:
+        return jsonify({'error': 'Article URL too long'}), 400
+    try:
+        current = public_article_url(raw)
+        session = requests.Session()
+        session.trust_env = False
+        response = None
+        for _ in range(4):
+            # Validate redirects; do not follow arbitrary redirects automatically.
+            response = session.get(current, timeout=8, allow_redirects=False,
+                                   headers={'User-Agent': HEADERS['User-Agent'],
+                                            'Accept': 'text/html'})
+            if response.status_code in (301, 302, 303, 307, 308):
+                nxt = urllib.parse.urljoin(current, response.headers.get('Location', ''))
+                current = public_article_url(nxt)
+                continue
+            break
+        else:
+            raise ValueError('Too many redirects')
+        response.raise_for_status()
+        if 'text/html' not in response.headers.get('Content-Type', '').lower():
+            raise ValueError('URL is not an HTML article')
+        if len(response.content) > 2000000:
+            raise ValueError('Article is too large')
+        parser = PosterMetadataParser()
+        parser.feed(response.text)
+        meta = parser.meta
+        title = meta.get('og:title') or meta.get('twitter:title') or parser.title_text
+        description = meta.get('og:description') or meta.get('description') or meta.get('twitter:description') or ''
+        image_url = meta.get('og:image') or meta.get('twitter:image') or ''
+        if image_url:
+            image_url = urllib.parse.urljoin(current, image_url)
+            try: public_article_url(image_url)
+            except (ValueError, socket.gaierror): image_url = ''
+        return jsonify({'title': title.strip()[:250], 'description': description.strip()[:280],
+                        'image': image_url, 'source': urllib.parse.urlsplit(current).hostname,
+                        'url': current})
+    except (ValueError, requests.RequestException, socket.gaierror, OSError) as error:
+        return jsonify({'error': str(error)}), 400
+
 # ── ROUTES ───────────────────────────────────────────────────
 
 @app.route('/')
