@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: avi-autoposter
+    runtime: python
+    region: singapore
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn backend:app
+    healthCheckPath: /api/test?q=Modi
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
