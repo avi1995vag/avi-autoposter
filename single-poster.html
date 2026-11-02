@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Single Poster Studio — AVI Auto-Poster</title>
+<link href="https://fonts.googleapis.com/css2?family=Anek+Kannada:wght@400;500;600;700;800&family=Inter:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{font-family:Inter,'Anek Kannada',sans-serif;color:#f8f8fa;background:#111216;font-synthesis:none}*{box-sizing:border-box}
+body{margin:0}header{height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid #35363e;background:#18191d;gap:12px}
+a{color:#ff6770;text-decoration:none}h1{font-size:17px;margin:0}h2{font-size:14px;margin:0 0 14px}small{color:#afb0bc}
+main{display:grid;grid-template-columns:320px minmax(350px,1fr) 310px;min-height:calc(100vh - 68px)}
+aside{padding:22px;background:#1b1c22;border-right:1px solid #383943;overflow-y:auto}
+.right{border-left:1px solid #383943;border-right:0}
+section{margin-bottom:24px}label{display:block;margin:13px 0 6px;color:#e4e4ea;font-size:12px;font-weight:700}
+input,textarea,select,button{font:inherit}input,textarea,select{background:#25262e;border:1px solid #494953;color:#fff;border-radius:9px;width:100%;padding:11px;font-size:13px;outline:none}textarea{min-height:115px;resize:vertical;line-height:1.6}
+input:focus,textarea:focus,select:focus{border-color:#f45b65}button{cursor:pointer;border-radius:10px;padding:11px 14px;background:#34353e;border:1px solid #53545c;color:#fff;font-weight:800}button:focus-visible{outline:3px solid #ff6770}
+button.primary{background:#e42d39;border-color:#e42d39}button:hover{filter:brightness(1.15)}
+.flex{display:flex;gap:8px}.flex>*{flex:1;min-width:0}
+.workspace{display:flex;align-items:center;flex-direction:column;padding:26px;gap:16px;background:radial-gradient(ellipse at 50% 20%,#29252a,#101115 70%)}
+canvas{width:min(100%,590px);height:auto;box-shadow:0 20px 65px #0009;border-radius:5px;display:block}
+.toolbar{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
+.templates{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.template{padding:13px 5px;font-size:12px;min-height:57px;background:#25262d;border:1px solid #41424a}
+.template.selected{border-color:#ff6770;background:#4c292e;color:#fff}
+.swatches{display:flex;gap:9px}.swatch{width:35px;height:35px;padding:0;border:3px solid transparent;border-radius:50%}.swatch.active{outline:2px solid white;outline-offset:2px}
+.note{font-size:12px;line-height:1.65;color:#b8bac5}#message{min-height:18px;color:#ffb4bb;font-size:12px}
+@media(max-width:1150px){main{grid-template-columns:275px minmax(320px,1fr)}.right{grid-column:1/-1;display:block;border-top:1px solid #444}.templates{grid-template-columns:repeat(5,1fr)}}
+@media(max-width:700px){header{padding:12px;height:auto}main{display:flex;flex-direction:column}aside{padding:18px}.workspace{padding:15px}.templates{grid-template-columns:repeat(2,1fr)}}
+</style></head><body>
+<header><h1>🔴 AVI <span style="color:#ff6870">Single Poster Studio</span></h1><a href="./index.html">← Existing Carousel Studio</a></header>
+<main>
+<aside>
+<section><h2>1. Write your story</h2>
+<label for="category">Category / eyebrow</label><input id="category" maxlength="50" value="BREAKING NEWS">
+<label for="headline">Headline — English or ಕನ್ನಡ</label><textarea id="headline" maxlength="250">ಹೊಸ ಸುದ್ದಿಗೆ ಹೊಸ ವಿನ್ಯಾಸ!</textarea>
+<label for="detail">Supporting line</label><textarea id="detail" maxlength="280">ಒಂದು ಸುದ್ದಿಯಿಂದ ಸುಂದರವಾದ ಸಿಂಗಲ್ ಪೋಸ್ಟರ್ ಸಿದ್ಧಪಡಿಸಿ</textarea>
+<label for="brand">Brand / footer</label><input id="brand" maxlength="60" value="AVI AUTO-POSTER">
+<label for="image">2. Upload main photo</label><input id="image" type="file" accept="image/png,image/jpeg,image/webp">
+<p class="note">Your image stays in this browser; nothing is uploaded. For best results, use a high-resolution, rights-cleared image.</p>
+</section>
+<section><h2>3. Size & text</h2><label for="size">Output size</label><select id="size"><option value="1080x1080">Square · 1080 × 1080</option><option value="1080x1350">Portrait · 1080 × 1350</option><option value="1080x1920">Story · 1080 × 1920</option><option value="1200x675">Landscape · 1200 × 675</option></select>
+<label for="textScale">Headline size</label><input type="range" id="textScale" min="60" max="125" value="100">
+</section>
+</aside>
+<div class="workspace">
+<div class="toolbar"><button class="primary" id="download">↓ Download PNG</button><button id="shuffle">↻ Try another layout</button><button id="reset">Reset sample</button></div>
+<canvas id="poster" width="1080" height="1080" aria-label="Live poster preview"></canvas><div id="message" role="status"></div>
+</div>
+<aside class="right"><section><h2>4. Choose layout</h2><div class="templates" id="templates"></div></section>
+<section><h2>Color directions</h2><div class="swatches" id="swatches"></div></section>
+<section><h2>Design logic</h2><p class="note">Each layout uses a fixed safe area, responsive text fitting, Kannada-capable fonts, and different editorial image placement. Photo layouts fall back to a graphic treatment when no image is selected. Preview and PNG use the same canvas renderer.</p></section></aside>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const layouts=[
+['hero','Hero image'],['bottom','Bottom headline'],['split','Editorial split'],['left','Left image'],['poster','Big typography'],['quote','Statement'],['number','Impact card'],['diagonal','Diagonal'],['frame','Photo frame'],['minimal','Minimal'],['band','News band'],['spotlight','Spotlight']
+];
+const palettes=[['#d82732','#fff9f5','#16171b'],['#f1c40f','#fffefa','#121317'],['#2563eb','#f8fafc','#0c1830'],['#16a085','#f6fffb','#102621'],['#e96b36','#fff8ed','#261412']];
+let layout='hero',palette=0,photo=null,photoUrl=null;
+const canvas=$('poster'),ctx=canvas.getContext('2d',{alpha:false});
+function p(){return palettes[palette]}
+function rectangle(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
+function measureFit(text,maxWidth,maxLines,initial,minSize){
+ const words=String(text||'').trim().split(/\s+/).filter(Boolean);
+ for(let size=initial;size>=minSize;size-=2){
+  ctx.font='800 '+size+'px "Anek Kannada",Inter,sans-serif';
+  const lines=[];let line='';
+  for(const word of words){
+   const test=line?line+' '+word:word;
+   if(ctx.measureText(test).width<=maxWidth){line=test;continue}
+   if(line)lines.push(line);
+   line=word;
+   if(ctx.measureText(line).width>maxWidth){
+    let chunk='';line='';
+    for(const char of word){
+     if(chunk && ctx.measureText(chunk+char).width>maxWidth){lines.push(chunk);chunk=char}else chunk+=char;
+    }
+    line=chunk;
+   }
+  }
+  if(line)lines.push(line);
+  if(lines.length<=maxLines)return {lines,size};
+ }
+ const size=minSize;ctx.font='800 '+size+'px "Anek Kannada",Inter,sans-serif';
+ const lines=[];let line='';
+ for(const ch of String(text||'')){
+  if(ch==='\n'||(line&&ctx.measureText(line+ch).width>maxWidth)){lines.push(line);line=ch==='\n'?'':ch}else line+=ch;
+ }
+ if(line)lines.push(line);
+ const visible=lines.slice(0,maxLines);
+ if(lines.length>maxLines){let last=visible[maxLines-1];while(last&&ctx.measureText(last+'…').width>maxWidth)last=last.slice(0,-1);visible[maxLines-1]=last+'…'}
+ return {lines:visible,size};
+}
+function headline(text,x,y,width,maxLines,size,color,align='left',maxHeight=Infinity){
+ ctx.textAlign=align;ctx.textBaseline='top';ctx.fillStyle=color;
+ const fitted=measureFit(text,width,maxLines,size,Math.max(28,Math.floor(size*.43)));
+ const lh=fitted.size*1.32;
+ // Vertical-fit guarantee for portrait and landscape sizes
+ const scale=Math.min(1,maxHeight/(fitted.lines.length*lh||1));
+ const finalSize=Math.max(20,Math.floor(fitted.size*scale));
+ ctx.font='800 '+finalSize+'px "Anek Kannada",Inter,sans-serif';
+ fitted.lines.forEach((l,i)=>ctx.fillText(l,x,y+i*finalSize*1.32));
+ return fitted.lines.length*finalSize*1.32;
+}
+function copy(text,x,y,width,size,color,maxLines=3,align='left'){
+ ctx.textAlign=align;ctx.textBaseline='top';ctx.fillStyle=color;
+ const f=measureFit(text,width,maxLines,size,Math.max(19,Math.floor(size*.62)));
+ ctx.font='500 '+f.size+'px "Anek Kannada",Inter,sans-serif';
+ f.lines.forEach((l,i)=>ctx.fillText(l,x,y+i*f.size*1.5));
+ return f.lines.length*f.size*1.5;
+}
+function imageCover(x,y,w,h){
+ if(!photo){rectangle(x,y,w,h,p()[2]);ctx.fillStyle=p()[0];ctx.globalAlpha=.15;for(let i=0;i<8;i++){ctx.beginPath();ctx.arc(x+w*(i%4)/3,y+h*(i%5)/4,Math.max(w,h)*.13,0,7);ctx.fill()}ctx.globalAlpha=1;return}
+ const scale=Math.max(w/photo.width,h/photo.height),sw=w/scale,sh=h/scale;
+ ctx.drawImage(photo,(photo.width-sw)/2,(photo.height-sh)/2,sw,sh,x,y,w,h);
+}
+function imageAt(x,y,w,h){ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();imageCover(x,y,w,h);ctx.restore()}
+function gradient(x,y,w,h,start,end,vertical=true){
+ const g=ctx.createLinearGradient(x,y,x+(vertical?0:w),y+(vertical?h:0));g.addColorStop(0,start);g.addColorStop(1,end);rectangle(x,y,w,h,g);
+}
+function draw(){
+ const [W,H]= $('size').value.split('x').map(Number);canvas.width=W;canvas.height=H;
+ const [a,white,dark]=p();const title=$('headline').value.trim()||'Your headline here';
+ const detail=$('detail').value.trim(),cat=$('category').value.trim(),brand=$('brand').value.trim();
+ const mx=W*.062,usable=W-2*mx,scale=Number($('textScale').value)/100;
+ const fs=Math.round(Math.min(W*.082,95)*scale), ds=Math.round(Math.min(W*.033,37));
+ const foot=()=>{rectangle(mx,H-60,usable,2,a);ctx.font='700 '+Math.min(24,W*.023)+'px Inter,sans-serif';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillStyle=white;ctx.fillText(brand.slice(0,42),mx,H-45)};
+ const eyebrow=(x,y,color=white)=>{ctx.fillStyle=color;ctx.font='900 '+Math.min(27,W*.027)+'px Inter,"Anek Kannada",sans-serif';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(cat.slice(0,42),x,y)};
+ rectangle(0,0,W,H,dark);
+ const t=(x,y,w=usable,lines=4,col=white,height=H*.45)=>headline(title,x,y,w,lines,fs,col,'left',height);
+ if(layout==='hero'||layout==='bottom'){
+  imageAt(0,0,W,layout==='hero'?H:H*.72);
+  gradient(0,H*.30,W,H*.70,'#00000000','#0b0c0ffb');
+  eyebrow(mx,H*.67,a);const ty=H*.71;t(mx,ty,usable,3,white,H*.20);if(detail)copy(detail,mx,H*.90,usable,ds,white,2);
+ }else if(layout==='split'||layout==='left'){
+  const horizontal=H>W*1.4;
+  if(horizontal){imageAt(0,0,W,H*.49);rectangle(0,H*.49,W,H*.51,dark);rectangle(mx,H*.515,W*.24,8,a);eyebrow(mx,H*.55,a);t(mx,H*.61,usable,4,white,H*.24);copy(detail,mx,H*.88,usable,ds,white,2)}
+  else{const iw=W*.48;imageAt(layout==='split'?W-iw:0,0,iw,H);const x=layout==='split'?mx:iw+mx*.5;const tw=W-iw-mx*1.5;eyebrow(x,H*.17,a);headline(title,x,H*.26,tw,6,fs*.78,white,'left',H*.48);copy(detail,x,H*.79,tw,ds*.8,white,3)}
+ }else if(layout==='poster'||layout==='quote'||layout==='minimal'){
+  rectangle(0,0,W,H,layout==='minimal'?white:dark);
+  if(layout!=='minimal')rectangle(0,0,22,H,a);
+  const ink=layout==='minimal'?dark:white;
+  eyebrow(mx,H*.15,a);
+  headline(title,mx,H*.30,usable,6,layout==='quote'?fs*.89:fs*1.17,ink,'left',H*.44);
+  rectangle(mx,H*.78,W*.18,7,a);copy(detail,mx,H*.83,usable,ds,ink,3);
+ }else if(layout==='number'){
+  rectangle(mx,H*.15,usable,H*.70,a);rectangle(mx+22,H*.15+22,usable-44,H*.70-44,dark);
+  eyebrow(mx*1.5,H*.23,a);headline(title,mx*1.5,H*.35,usable-mx,5,fs*1.08,white,'left',H*.36);copy(detail,mx*1.5,H*.75,usable-mx,ds,white,2);
+ }else if(layout==='diagonal'){
+  imageAt(0,0,W,H);ctx.save();ctx.fillStyle=dark;ctx.beginPath();ctx.moveTo(0,H*.42);ctx.lineTo(W, H*.23);ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.fill();ctx.restore();
+  rectangle(mx,H*.52,W*.2,9,a);eyebrow(mx,H*.56,a);t(mx,H*.64,usable,4,white,H*.25);copy(detail,mx,H*.9,usable,ds,white,2);
+ }else if(layout==='frame'){
+  rectangle(mx,H*.07,usable,H*.53,a);imageAt(mx+9,H*.07+9,usable-18,H*.53-18);
+  eyebrow(mx,H*.65,a);t(mx,H*.70,usable,3,white,H*.18);copy(detail,mx,H*.9,usable,ds,white,2);
+ }else if(layout==='band'){
+  imageAt(0,0,W,H);rectangle(0,H*.48,W,H*.36,a);eyebrow(mx,H*.51,dark);headline(title,mx,H*.57,usable,3,fs,dark,'left',H*.21);rectangle(0,H*.84,W,H*.16,dark);copy(detail,mx,H*.86,usable,ds,white,2);
+ }else if(layout==='spotlight'){
+  imageAt(W*.25,H*.08,W*.7,H*.56);gradient(0,0,W,H,'#14151806',dark);rectangle(mx,H*.21,15,H*.25,a);eyebrow(mx+30,H*.23,a);headline(title,mx,H*.54,usable,4,fs*1.15,white,'left',H*.26);copy(detail,mx,H*.85,usable,ds,white,2);
+ }
+ foot();
+}
+function selectLayout(id){layout=id;document.querySelectorAll('.template').forEach(el=>el.classList.toggle('selected',el.dataset.id===id));draw()}
+layouts.forEach(([id,name])=>{const b=document.createElement('button');b.className='template';b.textContent=name;b.dataset.id=id;b.onclick=()=>selectLayout(id);$('templates').append(b)});
+palettes.forEach(([accent],i)=>{const b=document.createElement('button');b.className='swatch';b.style.background=accent;b.title='Palette '+(i+1);b.setAttribute('aria-label',b.title);b.onclick=()=>{palette=i;document.querySelectorAll('.swatch').forEach((v,j)=>v.classList.toggle('active',i===j));draw()};$('swatches').append(b)});
+document.querySelector('.swatch').classList.add('active');
+['category','headline','detail','brand','size','textScale'].forEach(id=>$(id).addEventListener('input',draw));
+$('image').addEventListener('change',e=>{const file=e.target.files?.[0];if(!file)return;if(!/^image\/(png|jpeg|webp)$/.test(file.type)||file.size>15*1024*1024){$('message').textContent='Choose a PNG, JPEG or WebP image under 15 MB';return}
+ if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl=URL.createObjectURL(file);
+ const img=new Image();img.onload=()=>{photo=img;$('message').textContent='Photo ready';draw()};img.onerror=()=>{$('message').textContent='Unable to read image'};img.src=photoUrl;
+});
+$('download').onclick=()=>{draw();canvas.toBlob(blob=>{if(!blob){$('message').textContent='Export failed';return}const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='avi-poster-'+layout+'-'+canvas.width+'x'+canvas.height+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);$('message').textContent='PNG exported'},'image/png')};
+$('shuffle').onclick=()=>{const ids=layouts.map(x=>x[0]);selectLayout(ids[(ids.indexOf(layout)+1)%ids.length])};
+$('reset').onclick=()=>{$('category').value='BREAKING NEWS';$('headline').value='ಹೊಸ ಸುದ್ದಿಗೆ ಹೊಸ ವಿನ್ಯಾಸ!';$('detail').value='ಒಂದು ಸುದ್ದಿಯಿಂದ ಸುಂದರವಾದ ಸಿಂಗಲ್ ಪೋಸ್ಟರ್ ಸಿದ್ಧಪಡಿಸಿ';$('brand').value='AVI AUTO-POSTER';photo=null;$('image').value='';selectLayout('hero')};
+document.fonts.ready.then(draw);selectLayout('hero');
+</script></body></html>
