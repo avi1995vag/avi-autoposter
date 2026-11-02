@@ -24,11 +24,37 @@ canvas{width:min(100%,590px);height:auto;box-shadow:0 20px 65px #0009;border-rad
 .note{font-size:12px;line-height:1.65;color:#b8bac5}#message{min-height:18px;color:#ffb4bb;font-size:12px}
 @media(max-width:1150px){main{grid-template-columns:275px minmax(320px,1fr)}.right{grid-column:1/-1;display:block;border-top:1px solid #444}.templates{grid-template-columns:repeat(5,1fr)}}
 @media(max-width:700px){header{padding:12px;height:auto}main{display:flex;flex-direction:column}aside{padding:18px}.workspace{padding:15px}.templates{grid-template-columns:repeat(2,1fr)}}
+</style>
+<style>
+/* Editorial Studio visual refresh */
+:root{--surface:#fff;--ink:#191b21;--muted:#68707e;--line:#e6e7eb;--red:#dc2837;color:var(--ink);background:#f1f2f4}
+body{background:#f1f2f4;color:var(--ink)}
+header{background:#fff;color:#16171a;height:76px;box-shadow:0 2px 15px #0f172a0a;border-bottom:1px solid #e9e9ed}
+header h1{font-size:22px;letter-spacing:-.6px}header a{font-size:13px;font-weight:800}
+main{grid-template-columns:minmax(290px,335px) minmax(340px,1fr) minmax(290px,320px);gap:0}
+aside{background:#fff;border-color:#e4e5e9;padding:24px}aside.right{border-color:#e4e5e9}
+h2{font-size:15px;margin:0 0 18px;letter-spacing:-.2px}section{padding-bottom:18px;border-bottom:1px solid #ebedf0;margin-bottom:20px}
+label{color:#424751;font-size:12px;margin-top:15px}
+input,textarea,select{background:#fafafb;color:#17191e;border:1px solid #d9dce2;border-radius:11px;padding:12px;box-shadow:0 1px 0 #f7f7f8}
+input:focus,textarea:focus,select:focus{border-color:#e33c49;box-shadow:0 0 0 3px #e33c491c}
+button{background:#fff;color:#30343d;border:1px solid #d9dbe2;border-radius:11px}
+button.primary{background:#df2f3e;color:#fff;border-color:#df2f3e}
+button:hover{filter:none;border-color:#db3e49;box-shadow:0 3px 12px #12121612}
+.workspace{background:radial-gradient(ellipse at top,#fff 0,#ecedf0 80%);padding:32px 24px}
+canvas{box-shadow:0 24px 75px #16191f26;border:1px solid #dfe1e6;border-radius:12px}
+.toolbar{position:sticky;top:8px;z-index:5;background:#ffffffed;border:1px solid #e3e4e8;border-radius:16px;padding:11px;box-shadow:0 8px 25px #11182713}
+.template{background:#fafafa;color:#272b34;border:1px solid #e0e2e7;min-height:64px;font-size:12px}
+.template.selected{background:#fff0f1;border-color:#db2d3b;color:#b71626}
+.note{color:#656a75;font-size:12px}#message{font-weight:700;color:#a42937;max-width:590px;line-height:1.6}
+#connection{padding:10px 12px;background:#f7f8fa;border:1px solid #e8e9ec;border-radius:9px;font-size:12px;color:#555b65;margin:10px 0}
+#backendUrl{font-size:12px}
+@media(max-width:1150px){main{grid-template-columns:290px minmax(320px,1fr)}}
+@media(max-width:700px){main{display:flex;flex-direction:column}.workspace{order:0}aside{order:1}.right{order:2}header h1{font-size:17px}}
 </style></head><body>
 <header><h1>🔴 AVI <span style="color:#ff6870">Single Poster Studio</span></h1><a href="./index.html">← Existing Carousel Studio</a></header>
 <main>
 <aside>
-<section><h2>1. Import or write</h2><label for="backendUrl">Article import server</label><input id="backendUrl" type="url" value="https://avi-autoposter.onrender.com" placeholder="https://your-render-service.onrender.com"><p class="note">GitHub Pages requires a separate running backend. Change this if your Render service uses another address.</p><label for="articleUrl">Article URL</label><input id="articleUrl" type="url" placeholder="https://example.com/news/article"><button id="importArticle" class="primary" style="margin-top:8px;width:100%">Import article</button><p class="note">Imports available article metadata. Verify content and image rights before publishing.</p>
+<section><h2>1. Import or write</h2><label for="backendUrl">Article import server</label><input id="backendUrl" type="url" value="https://avi-autoposter.onrender.com" placeholder="https://your-render-service.onrender.com"><div id="connection">Backend not checked</div><button id="checkBackend" style="width:100%">Check connection</button><p class="note">Import requires a deployed Python service; GitHub Pages alone cannot fetch news articles.</p><label for="articleUrl">Article URL</label><input id="articleUrl" type="url" placeholder="https://example.com/news/article"><button id="importArticle" class="primary" style="margin-top:8px;width:100%">Import article</button><p class="note">Imports available article metadata. Verify content and image rights before publishing.</p>
 <label for="category">Category / eyebrow</label><input id="category" maxlength="50" value="BREAKING NEWS">
 <label for="headline">Headline — English or ಕನ್ನಡ</label><textarea id="headline" maxlength="250">ಹೊಸ ಸುದ್ದಿಗೆ ಹೊಸ ವಿನ್ಯಾಸ!</textarea>
 <label for="detail">Supporting line</label><textarea id="detail" maxlength="280">ಒಂದು ಸುದ್ದಿಯಿಂದ ಸುಂದರವಾದ ಸಿಂಗಲ್ ಪೋಸ್ಟರ್ ಸಿದ್ಧಪಡಿಸಿ</textarea>
@@ -195,6 +221,83 @@ function recommend(){
 function loadRemoteImage(url){
  const parsed=new URL(url);
  if(!['https:','http:'].includes(parsed.protocol))throw Error('Only web image URLs are allowed');
+ const base=$('backendUrl').value.trim().replace(new RegExp('/
+ const img=new Image();img.crossOrigin='anonymous';
+ img.onload=()=>{photo=img;draw();$('message').textContent='Image imported'};
+ img.onerror=()=>{$('message').textContent='Image blocked by source; upload it manually instead'};
+ img.src=base+'/api/poster_image?url='+encodeURIComponent(parsed.href);
+}
+$('loadPhotoUrl').onclick=()=>{try{loadRemoteImage($('photoUrlInput').value)}catch(e){$('message').textContent=e.message}};
+$('importArticle').onclick=async()=>{
+ const btn=$('importArticle');btn.disabled=true;$('message').textContent='Importing…';
+ try{
+  const url=new URL($('articleUrl').value);
+  if(!/^https?:$/.test(url.protocol))throw Error('Invalid article URL');
+  const base=$('backendUrl').value.trim().replace(new RegExp('/$'),'');
+  if(!base.startsWith('https://'))throw Error('Enter an HTTPS backend address');
+  const response=await fetch(base+'/api/article_preview?url='+encodeURIComponent(url.href),{headers:{Accept:'application/json'}});
+  const contentType=response.headers.get('content-type')||'';
+  if(!contentType.includes('application/json'))throw Error('Backend returned HTML instead of JSON. Check Render service URL and deployment.');
+  const data=await response.json();if(!response.ok||data.error)throw Error(data.error||'Import failed');
+  if(!data.title)throw Error('No article headline available');
+  $('headline').value=data.title;$('detail').value=data.description||'';$('category').value='NEWS';
+  if(data.image){$('photoUrlInput').value=data.image;loadRemoteImage(data.image)}
+  recommend();$('message').textContent='Imported from '+data.source+' — review facts and photo rights';
+ }catch(error){$('message').textContent=error.message+' — manual editor remains available'}
+ finally{btn.disabled=false}
+};
+$('recommend').onclick=recommend;
+$('approved').onchange=()=>{$('approveExport').disabled=!$('approved').checked};
+$('approveExport').onclick=()=>{if($('approved').checked)$('download').click()};
+
+
+async function checkBackend(){
+ const out=$('connection'),base=$('backendUrl').value.trim().replace(new RegExp('/selectLayout('hero');
+</script></body></html>),'');
+ const img=new Image();img.crossOrigin='anonymous';
+ img.onload=()=>{photo=img;draw();$('message').textContent='Image imported'};
+ img.onerror=()=>{$('message').textContent='Image blocked by source; upload it manually instead'};
+ img.src=parsed.href;
+}
+$('loadPhotoUrl').onclick=()=>{try{loadRemoteImage($('photoUrlInput').value)}catch(e){$('message').textContent=e.message}};
+$('importArticle').onclick=async()=>{
+ const btn=$('importArticle');btn.disabled=true;$('message').textContent='Importing…';
+ try{
+  const url=new URL($('articleUrl').value);
+  if(!/^https?:$/.test(url.protocol))throw Error('Invalid article URL');
+  const base=$('backendUrl').value.trim().replace(new RegExp('/$'),'');
+  if(!base.startsWith('https://'))throw Error('Enter an HTTPS backend address');
+  const response=await fetch(base+'/api/article_preview?url='+encodeURIComponent(url.href),{headers:{Accept:'application/json'}});
+  const contentType=response.headers.get('content-type')||'';
+  if(!contentType.includes('application/json'))throw Error('Backend returned HTML instead of JSON. Check Render service URL and deployment.');
+  const data=await response.json();if(!response.ok||data.error)throw Error(data.error||'Import failed');
+  if(!data.title)throw Error('No article headline available');
+  $('headline').value=data.title;$('detail').value=data.description||'';$('category').value='NEWS';
+  if(data.image){$('photoUrlInput').value=data.image;loadRemoteImage(data.image)}
+  recommend();$('message').textContent='Imported from '+data.source+' — review facts and photo rights';
+ }catch(error){$('message').textContent=error.message+' — manual editor remains available'}
+ finally{btn.disabled=false}
+};
+$('recommend').onclick=recommend;
+$('approved').onchange=()=>{$('approveExport').disabled=!$('approved').checked};
+$('approveExport').onclick=()=>{if($('approved').checked)$('download').click()};
+
+document.fonts.ready.then(draw);selectLayout('hero');
+</script></body></html>),'');
+ out.textContent='Connecting to backend…';
+ try{
+  const res=await fetch(base+'/api/health',{signal:AbortSignal.timeout(16000)});
+  if(!res.ok)throw new Error('HTTP '+res.status);
+  const type=res.headers.get('content-type')||'';
+  if(!type.includes('application/json'))throw new Error('Backend URL returns a webpage, not an API');
+  const json=await res.json();if(!json.ok)throw new Error('API did not report ready');
+  out.textContent='● Connected — article import available';out.style.color='#16834d';return true;
+ }catch(error){out.textContent='● Backend unavailable: '+error.message+'. Verify Render deployment and address.';out.style.color='#b91c1c';return false}
+}
+$('checkBackend').onclick=checkBackend;
+
+document.fonts.ready.then(draw);selectLayout('hero');
+</script></body></html>),'');
  const img=new Image();img.crossOrigin='anonymous';
  img.onload=()=>{photo=img;draw();$('message').textContent='Image imported'};
  img.onerror=()=>{$('message').textContent='Image blocked by source; upload it manually instead'};
