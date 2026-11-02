@@ -28,16 +28,16 @@ canvas{width:min(100%,590px);height:auto;box-shadow:0 20px 65px #0009;border-rad
 <header><h1>🔴 AVI <span style="color:#ff6870">Single Poster Studio</span></h1><a href="./index.html">← Existing Carousel Studio</a></header>
 <main>
 <aside>
-<section><h2>1. Write your story</h2>
+<section><h2>1. Import or write</h2><label for="articleUrl">Article URL</label><input id="articleUrl" type="url" placeholder="https://example.com/news/article"><button id="importArticle" class="primary" style="margin-top:8px;width:100%">Import article</button><p class="note">Imports available article metadata. Verify content and image rights before publishing.</p>
 <label for="category">Category / eyebrow</label><input id="category" maxlength="50" value="BREAKING NEWS">
 <label for="headline">Headline — English or ಕನ್ನಡ</label><textarea id="headline" maxlength="250">ಹೊಸ ಸುದ್ದಿಗೆ ಹೊಸ ವಿನ್ಯಾಸ!</textarea>
 <label for="detail">Supporting line</label><textarea id="detail" maxlength="280">ಒಂದು ಸುದ್ದಿಯಿಂದ ಸುಂದರವಾದ ಸಿಂಗಲ್ ಪೋಸ್ಟರ್ ಸಿದ್ಧಪಡಿಸಿ</textarea>
 <label for="brand">Brand / footer</label><input id="brand" maxlength="60" value="AVI AUTO-POSTER">
-<label for="image">2. Upload main photo</label><input id="image" type="file" accept="image/png,image/jpeg,image/webp">
+<label for="image">2. Upload main photo</label><label for="photoUrlInput">Or image URL</label><input id="photoUrlInput" placeholder="https://example.com/image.jpg"><button id="loadPhotoUrl">Load URL photo</button><input id="image" type="file" accept="image/png,image/jpeg,image/webp">
 <p class="note">Your image stays in this browser; nothing is uploaded. For best results, use a high-resolution, rights-cleared image.</p>
 </section>
 <section><h2>3. Size & text</h2><label for="size">Output size</label><select id="size"><option value="1080x1080">Square · 1080 × 1080</option><option value="1080x1350">Portrait · 1080 × 1350</option><option value="1080x1920">Story · 1080 × 1920</option><option value="1200x675">Landscape · 1200 × 675</option></select>
-<label for="textScale">Headline size</label><input type="range" id="textScale" min="60" max="125" value="100">
+<label for="focusX">Image horizontal focus</label><input type="range" id="focusX" min="0" max="100" value="50"><label for="focusY">Image vertical focus</label><input type="range" id="focusY" min="0" max="100" value="50"><label for="textScale">Headline size</label><input type="range" id="textScale" min="60" max="125" value="100">
 </section>
 </aside>
 <div class="workspace">
@@ -45,7 +45,7 @@ canvas{width:min(100%,590px);height:auto;box-shadow:0 20px 65px #0009;border-rad
 <canvas id="poster" width="1080" height="1080" aria-label="Live poster preview"></canvas><div id="message" role="status"></div>
 </div>
 <aside class="right"><section><h2>4. Choose layout</h2><div class="templates" id="templates"></div></section>
-<section><h2>Color directions</h2><div class="swatches" id="swatches"></div></section>
+<section><h2>Smart layout suggestions</h2><button id="recommend" class="primary">Recommend 3 layouts</button><div class="templates" id="recommendations" style="margin-top:10px"></div></section><section><h2>Editorial approval</h2><label><input id="approved" type="checkbox" style="width:auto"> Checked text, facts and image rights</label><button id="approveExport" disabled>Approve & export PNG</button><p class="note">No automatic posting from this editor.</p></section><section><h2>Color directions</h2><div class="swatches" id="swatches"></div></section>
 <section><h2>Design logic</h2><p class="note">Each layout uses a fixed safe area, responsive text fitting, Kannada-capable fonts, and different editorial image placement. Photo layouts fall back to a graphic treatment when no image is selected. Preview and PNG use the same canvas renderer.</p></section></aside>
 </main>
 <script>
@@ -111,7 +111,7 @@ function copy(text,x,y,width,size,color,maxLines=3,align='left'){
 function imageCover(x,y,w,h){
  if(!photo){rectangle(x,y,w,h,p()[2]);ctx.fillStyle=p()[0];ctx.globalAlpha=.15;for(let i=0;i<8;i++){ctx.beginPath();ctx.arc(x+w*(i%4)/3,y+h*(i%5)/4,Math.max(w,h)*.13,0,7);ctx.fill()}ctx.globalAlpha=1;return}
  const scale=Math.max(w/photo.width,h/photo.height),sw=w/scale,sh=h/scale;
- ctx.drawImage(photo,(photo.width-sw)/2,(photo.height-sh)/2,sw,sh,x,y,w,h);
+ ctx.drawImage(photo,(photo.width-sw)*Number($('focusX').value)/100,(photo.height-sh)*Number($('focusY').value)/100,sw,sh,x,y,w,h);
 }
 function imageAt(x,y,w,h){ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();imageCover(x,y,w,h);ctx.restore()}
 function gradient(x,y,w,h,start,end,vertical=true){
@@ -162,7 +162,7 @@ function selectLayout(id){layout=id;document.querySelectorAll('.template').forEa
 layouts.forEach(([id,name])=>{const b=document.createElement('button');b.className='template';b.textContent=name;b.dataset.id=id;b.onclick=()=>selectLayout(id);$('templates').append(b)});
 palettes.forEach(([accent],i)=>{const b=document.createElement('button');b.className='swatch';b.style.background=accent;b.title='Palette '+(i+1);b.setAttribute('aria-label',b.title);b.onclick=()=>{palette=i;document.querySelectorAll('.swatch').forEach((v,j)=>v.classList.toggle('active',i===j));draw()};$('swatches').append(b)});
 document.querySelector('.swatch').classList.add('active');
-['category','headline','detail','brand','size','textScale'].forEach(id=>$(id).addEventListener('input',draw));
+['category','headline','detail','brand','size','textScale','focusX','focusY'].forEach(id=>$(id).addEventListener('input',draw));
 $('image').addEventListener('change',e=>{const file=e.target.files?.[0];if(!file)return;if(!/^image\/(png|jpeg|webp)$/.test(file.type)||file.size>15*1024*1024){$('message').textContent='Choose a PNG, JPEG or WebP image under 15 MB';return}
  if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl=URL.createObjectURL(file);
  const img=new Image();img.onload=()=>{photo=img;$('message').textContent='Photo ready';draw()};img.onerror=()=>{$('message').textContent='Unable to read image'};img.src=photoUrl;
@@ -170,5 +170,54 @@ $('image').addEventListener('change',e=>{const file=e.target.files?.[0];if(!file
 $('download').onclick=()=>{draw();canvas.toBlob(blob=>{if(!blob){$('message').textContent='Export failed';return}const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='avi-poster-'+layout+'-'+canvas.width+'x'+canvas.height+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);$('message').textContent='PNG exported'},'image/png')};
 $('shuffle').onclick=()=>{const ids=layouts.map(x=>x[0]);selectLayout(ids[(ids.indexOf(layout)+1)%ids.length])};
 $('reset').onclick=()=>{$('category').value='BREAKING NEWS';$('headline').value='ಹೊಸ ಸುದ್ದಿಗೆ ಹೊಸ ವಿನ್ಯಾಸ!';$('detail').value='ಒಂದು ಸುದ್ದಿಯಿಂದ ಸುಂದರವಾದ ಸಿಂಗಲ್ ಪೋಸ್ಟರ್ ಸಿದ್ಧಪಡಿಸಿ';$('brand').value='AVI AUTO-POSTER';photo=null;$('image').value='';selectLayout('hero')};
+
+function classifyStory(text){
+ const s=text.toLowerCase();
+ const rules=[
+  {category:'Finance',re:/₹|ರೂಪಾಯಿ|ಹಣ|ಬ್ಯಾಂಕ್|ಷೇರು|stock|budget|market|economy|finance|crore|ಕೋಟಿ/,layouts:['number','minimal','split']},
+  {category:'Politics',re:/ಚುನಾವಣೆ|ಸರ್ಕಾರ|ಮಂತ್ರಿ|politic|election|minister|government|court|ನ್ಯಾಯಾಲಯ/,layouts:['split','hero','band']},
+  {category:'Breaking',re:/breaking|ತುರ್ತು|ಅಪಘಾತ|explosion|alert|emergency|ಬೆಂಕಿ/,layouts:['band','hero','diagonal']},
+  {category:'Human interest',re:/ಸಾಧನೆ|ವಿಜೇತ|winner|interview|success|achieve|inspiring|ಮಾನವೀಯ/,layouts:['frame','spotlight','quote']}
+ ];
+ return rules.find(rule=>rule.re.test(s))||{category:'General',layouts:photo?['hero','split','frame']:['poster','minimal','number']};
+}
+function recommend(){
+ const result=classifyStory($('headline').value+' '+$('detail').value);
+ const box=$('recommendations');box.replaceChildren();
+ result.layouts.forEach((id,index)=>{
+  const btn=document.createElement('button');btn.className='template';
+  btn.textContent=(index===0?'★ ':'')+layouts.find(v=>v[0]===id)[1];
+  btn.onclick=()=>selectLayout(id);box.append(btn);
+ });
+ $('message').textContent='Suggested for '+result.category;
+ selectLayout(result.layouts[0]);
+}
+function loadRemoteImage(url){
+ const parsed=new URL(url);
+ if(!['https:','http:'].includes(parsed.protocol))throw Error('Only web image URLs are allowed');
+ const img=new Image();img.crossOrigin='anonymous';
+ img.onload=()=>{photo=img;draw();$('message').textContent='Image imported'};
+ img.onerror=()=>{$('message').textContent='Image blocked by source; upload it manually instead'};
+ img.src=parsed.href;
+}
+$('loadPhotoUrl').onclick=()=>{try{loadRemoteImage($('photoUrlInput').value)}catch(e){$('message').textContent=e.message}};
+$('importArticle').onclick=async()=>{
+ const btn=$('importArticle');btn.disabled=true;$('message').textContent='Importing…';
+ try{
+  const url=new URL($('articleUrl').value);
+  if(!/^https?:$/.test(url.protocol))throw Error('Invalid article URL');
+  const response=await fetch('/api/article_preview?url='+encodeURIComponent(url.href));
+  const data=await response.json();if(!response.ok||data.error)throw Error(data.error||'Import failed');
+  if(!data.title)throw Error('No article headline available');
+  $('headline').value=data.title;$('detail').value=data.description||'';$('category').value='NEWS';
+  if(data.image){$('photoUrlInput').value=data.image;loadRemoteImage(data.image)}
+  recommend();$('message').textContent='Imported from '+data.source+' — review facts and photo rights';
+ }catch(error){$('message').textContent=error.message+' — manual editor remains available'}
+ finally{btn.disabled=false}
+};
+$('recommend').onclick=recommend;
+$('approved').onchange=()=>{$('approveExport').disabled=!$('approved').checked};
+$('approveExport').onclick=()=>{if($('approved').checked)$('download').click()};
+
 document.fonts.ready.then(draw);selectLayout('hero');
 </script></body></html>
