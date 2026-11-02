@@ -544,6 +544,43 @@ def article_preview():
     except (ValueError, requests.RequestException, socket.gaierror, OSError) as error:
         return jsonify({'error': str(error)}), 400
 
+
+@app.route('/api/poster_image')
+def poster_image():
+    """Validated image proxy for canvas rendering, with a bounded response."""
+    url = request.args.get('url', '').strip()
+    if len(url) > 2000:
+        return jsonify({'error': 'Image URL too long'}), 400
+    try:
+        current = public_article_url(url)
+        session = requests.Session()
+        session.trust_env = False
+        for _ in range(4):
+            r = session.get(current, timeout=10, allow_redirects=False,
+                            headers={'User-Agent': HEADERS['User-Agent'], 'Accept': 'image/*'},
+                            stream=True)
+            if r.status_code in (301, 302, 303, 307, 308):
+                current = public_article_url(urllib.parse.urljoin(current, r.headers.get('Location', '')))
+                r.close()
+                continue
+            break
+        else:
+            raise ValueError('Too many image redirects')
+        r.raise_for_status()
+        mime = r.headers.get('Content-Type', '').split(';')[0].lower()
+        if mime not in ('image/jpeg', 'image/png', 'image/webp'):
+            raise ValueError('Remote resource is not a supported image')
+        maximum = 10 * 1024 * 1024
+        content = bytearray()
+        for chunk in r.iter_content(65536):
+            content.extend(chunk)
+            if len(content) > maximum:
+                raise ValueError('Image exceeds 10MB')
+        r.close()
+        return Response(bytes(content), mimetype=mime, headers={'Cache-Control': 'public, max-age=1200'})
+    except (ValueError, requests.RequestException, OSError) as e:
+        return jsonify({'error': str(e)}), 400
+
 @app.route('/api/health')
 def api_health():
     return jsonify({'ok': True, 'service': 'avi-autoposter', 'article_import': True})
