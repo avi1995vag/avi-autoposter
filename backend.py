@@ -36,7 +36,7 @@ CORS(app, origins=[
     "http://localhost",
     "http://127.0.0.1",
     "null",
-    "https://avit995vag.github.io",      # GitHub Pages
+    "https://avi1995vag.github.io",      # GitHub Pages
     "https://avi-autoposter.onrender.com", # Render itself
     "https://avinashvagarnal.gt.tc",       # your custom domain
 ])
